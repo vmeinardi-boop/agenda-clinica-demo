@@ -107,6 +107,8 @@
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .brand-sub{ font-size:12px; color:var(--muted); margin-top:1px; }
+  .topbar-actions{ display:flex; align-items:center; gap:7px; flex-shrink:0; }
+  .topbar-actions .btn{ white-space:nowrap; }
 
   .btn{
     border:1px solid var(--border-strong); background:var(--surface); color:var(--ink);
@@ -386,6 +388,8 @@
     .brand-name{ font-size:14.5px; }
     .brand-sub{ display:none; }
     .btn{ padding:8px 12px; }
+    .topbar-actions{ gap:5px; }
+    .topbar-actions .btn{ min-height:34px; padding:6px 9px; font-size:11.5px; }
     .fab-new{ width:48px; height:48px; font-size:23px; right:12px; bottom:12px; }
     .dtc-month{ display:none; }
     /* Narrow columns: quick-action buttons would crowd out the patient name,
@@ -406,6 +410,10 @@
     <div class="brand">
       <div class="brand-name">Centro de Rehabilitación Neurológica</div>
       <div class="brand-sub">Agenda de turnos</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" id="btn-density" type="button">Ampliar</button>
+      <button class="btn" id="btn-excel" type="button">Excel</button>
     </div>
     <button class="btn-reset-icon" id="btn-reset-demo" type="button" title="Restablecer demo" aria-label="Restablecer demo">↺</button>
   </div>
@@ -509,6 +517,7 @@
   var MOBILE_BREAKPOINT = 640; // por debajo de este ancho, la agenda pasa a diseño "transpuesto": profesionales en filas, horario en horizontal (ver renderSkeletonTransposed/renderGridTransposed)
   var TR_NAME_W = 100;  // ancho fijo de la columna de nombre de profesional en el diseño transpuesto
   var TR_LANE_H = 58;   // alto de una "franja" de turno dentro de la fila de un profesional (diseño transpuesto) — deja lugar a la especialidad + hasta 2 líneas de nombre sin que se corten entre sí
+  var compactView = true;
   var DAY_NAMES = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   var MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
@@ -537,78 +546,78 @@
 
   var BASE_PATIENTS = [
     // Personas ficticias precargadas exclusivamente para esta demostración pública
-    'Paciente ficticio 01','Paciente ficticio 02','Paciente ficticio 03','Paciente ficticio 04','Paciente ficticio 05','Paciente ficticio 06','Paciente ficticio 07','Paciente ficticio 08','Paciente ficticio 09','Paciente ficticio 10',
-    'Paciente ficticio 11','Paciente ficticio 12','Paciente ficticio 13','Paciente ficticio 14','Paciente ficticio 15','Paciente ficticio 16','Paciente ficticio 17','Paciente ficticio 18','Paciente ficticio 19','Paciente ficticio 20',
+    'Alma Ríos','Benicio Luna','Catalina Prado','Dante Robles','Elena Vidal','Felipe Acosta','Greta Molina','Hugo Ferrer','Inés Campos','Julián Peralta',
+    'Kiara Montes','Lautaro Vera','Malena Costa','Nicolás Paz','Olivia Suárez','Pedro Quiroga','Renata Silva','Simón Cabrera','Trinidad Núñez','Ulises Castro',
     // Más personas ficticias disponibles en el buscador de la demostración
-    'Paciente ficticio 21','Paciente ficticio 22','Paciente ficticio 23','Paciente ficticio 24','Paciente ficticio 25','Paciente ficticio 26','Paciente ficticio 27','Paciente ficticio 28','Paciente ficticio 29','Paciente ficticio 30','Paciente ficticio 31','Paciente ficticio 32',
+    'Valeria Ponce','Wanda Leiva','Yago Méndez','Zoe Salas','Abril Navarro','Bautista Rey','Clara Soria','Damián Lozano','Emilia Vega','Franco Arias','Guadalupe Soler','Ian Correa',
     // Ejemplos ficticios adicionales
-    'Paciente ficticio 33','Paciente ficticio 34','Paciente ficticio 35','Paciente ficticio 36','Paciente ficticio 37','Paciente ficticio 38'
+    'Josefina Miró','Kevin Bustos','Lola Prieto','Mateo Roldán','Noelia Sanz','Octavio Gil'
   ];
 
   var SEED_DEFS = [
-    {day:0, prof:'ana',    start:'08:00', dur:60, patient:'Paciente ficticio 01',        status:'pendiente'},
-    {day:0, prof:'ana',    start:'09:00', dur:60, patient:'Paciente ficticio 02',    status:'asistio'},
-    {day:0, prof:'sofia',  start:'10:00', dur:30, patient:'Paciente ficticio 03',    status:'pendiente'},
-    {day:0, prof:'carla',  start:'11:00', dur:60, patient:'Paciente ficticio 04',   status:'pendiente', notes:'Primera entrevista con la familia.'},
-    {day:0, prof:'laura',  start:'14:00', dur:60, patient:'Paciente ficticio 05',      status:'pendiente'},
-    {day:0, prof:'martin', start:'16:00', dur:60, patient:'Paciente ficticio 06',    status:'pendiente'},
+    {day:0, prof:'ana',    start:'08:00', dur:60, patient:'Alma Ríos',        status:'pendiente'},
+    {day:0, prof:'ana',    start:'09:00', dur:60, patient:'Benicio Luna',    status:'asistio'},
+    {day:0, prof:'sofia',  start:'10:00', dur:30, patient:'Catalina Prado',    status:'pendiente'},
+    {day:0, prof:'carla',  start:'11:00', dur:60, patient:'Dante Robles',   status:'pendiente', notes:'Primera entrevista con la familia.'},
+    {day:0, prof:'laura',  start:'14:00', dur:60, patient:'Elena Vidal',      status:'pendiente'},
+    {day:0, prof:'martin', start:'16:00', dur:60, patient:'Felipe Acosta',    status:'pendiente'},
 
-    {day:1, prof:'martin', start:'09:00', dur:60, patient:'Paciente ficticio 07',    status:'pendiente'},
-    {day:1, prof:'martin', start:'11:00', dur:60, patient:'Paciente ficticio 08',      status:'pendiente'},
-    {day:1, prof:'laura',  start:'15:00', dur:60, patient:'Paciente ficticio 09',     status:'pendiente'},
-    {day:1, prof:'sofia',  start:'16:00', dur:30, patient:'Paciente ficticio 15',    status:'pendiente'},
-    {day:1, prof:'laura',  start:'16:00', dur:60, patient:'Paciente ficticio 16',  status:'asistio'},
-    {day:1, prof:'carla',  start:'17:00', dur:60, patient:'Paciente ficticio 10',     status:'pendiente'},
+    {day:1, prof:'martin', start:'09:00', dur:60, patient:'Greta Molina',    status:'pendiente'},
+    {day:1, prof:'martin', start:'11:00', dur:60, patient:'Hugo Ferrer',      status:'pendiente'},
+    {day:1, prof:'laura',  start:'15:00', dur:60, patient:'Inés Campos',     status:'pendiente'},
+    {day:1, prof:'sofia',  start:'16:00', dur:30, patient:'Olivia Suárez',    status:'pendiente'},
+    {day:1, prof:'laura',  start:'16:00', dur:60, patient:'Pedro Quiroga',  status:'asistio'},
+    {day:1, prof:'carla',  start:'17:00', dur:60, patient:'Julián Peralta',     status:'pendiente'},
 
-    {day:2, prof:'diego',  start:'09:00', dur:60, patient:'Paciente ficticio 11',     status:'pendiente', notes:'Primera evaluación de psicomotricidad.'},
-    {day:2, prof:'sofia',  start:'09:00', dur:60, patient:'Paciente ficticio 12',     status:'pendiente'},
-    {day:2, prof:'ana',    start:'08:00', dur:60, patient:'Paciente ficticio 01',        status:'pendiente'},
-    {day:2, prof:'ana',    start:'10:00', dur:60, patient:'Paciente ficticio 13',   status:'pendiente'},
-    {day:2, prof:'carla',  start:'11:00', dur:60, patient:'Paciente ficticio 14',    status:'asistio'},
-    {day:2, prof:'sofia',  start:'12:00', dur:30, patient:'Paciente ficticio 03',    status:'asistio'},
-    {day:2, prof:'martin', start:'17:00', dur:60, patient:'Paciente ficticio 08',      status:'cancelado'},
-    {day:2, prof:'carla',  start:'18:00', dur:60, patient:'Paciente ficticio 10',     status:'no_asistio'},
+    {day:2, prof:'diego',  start:'09:00', dur:60, patient:'Kiara Montes',     status:'pendiente', notes:'Primera evaluación de psicomotricidad.'},
+    {day:2, prof:'sofia',  start:'09:00', dur:60, patient:'Lautaro Vera',     status:'pendiente'},
+    {day:2, prof:'ana',    start:'08:00', dur:60, patient:'Alma Ríos',        status:'pendiente'},
+    {day:2, prof:'ana',    start:'10:00', dur:60, patient:'Malena Costa',   status:'pendiente'},
+    {day:2, prof:'carla',  start:'11:00', dur:60, patient:'Nicolás Paz',    status:'asistio'},
+    {day:2, prof:'sofia',  start:'12:00', dur:30, patient:'Catalina Prado',    status:'asistio'},
+    {day:2, prof:'martin', start:'17:00', dur:60, patient:'Hugo Ferrer',      status:'cancelado'},
+    {day:2, prof:'carla',  start:'18:00', dur:60, patient:'Julián Peralta',     status:'no_asistio'},
 
-    {day:3, prof:'martin', start:'10:00', dur:60, patient:'Paciente ficticio 07',    status:'asistio'},
-    {day:3, prof:'laura',  start:'14:00', dur:60, patient:'Paciente ficticio 05',      status:'no_asistio'},
-    {day:3, prof:'sofia',  start:'15:30', dur:60, patient:'Paciente ficticio 12',     status:'no_asistio'},
-    {day:3, prof:'carla',  start:'18:00', dur:60, patient:'Paciente ficticio 04',   status:'pendiente'},
+    {day:3, prof:'martin', start:'10:00', dur:60, patient:'Greta Molina',    status:'asistio'},
+    {day:3, prof:'laura',  start:'14:00', dur:60, patient:'Elena Vidal',      status:'no_asistio'},
+    {day:3, prof:'sofia',  start:'15:30', dur:60, patient:'Lautaro Vera',     status:'no_asistio'},
+    {day:3, prof:'carla',  start:'18:00', dur:60, patient:'Dante Robles',   status:'pendiente'},
 
-    {day:4, prof:'ana',    start:'08:00', dur:60, patient:'Paciente ficticio 02',    status:'pendiente'},
-    {day:4, prof:'sofia',  start:'09:30', dur:60, patient:'Paciente ficticio 17',      status:'pendiente', notes:'Trae informe del colegio.'},
-    {day:4, prof:'diego',  start:'10:00', dur:60, patient:'Paciente ficticio 13',   status:'pendiente'},
-    {day:4, prof:'ana',    start:'11:00', dur:60, patient:'Paciente ficticio 11',     status:'cancelado'},
-    {day:4, prof:'laura',  start:'15:00', dur:60, patient:'Paciente ficticio 18',       status:'pendiente'},
-    {day:4, prof:'diego',  start:'12:00', dur:60, patient:'Paciente ficticio 14',    status:'cancelado', notes:'Reprogramar — paciente de viaje.'},
+    {day:4, prof:'ana',    start:'08:00', dur:60, patient:'Benicio Luna',    status:'pendiente'},
+    {day:4, prof:'sofia',  start:'09:30', dur:60, patient:'Renata Silva',      status:'pendiente', notes:'Trae informe del colegio.'},
+    {day:4, prof:'diego',  start:'10:00', dur:60, patient:'Malena Costa',   status:'pendiente'},
+    {day:4, prof:'ana',    start:'11:00', dur:60, patient:'Kiara Montes',     status:'cancelado'},
+    {day:4, prof:'laura',  start:'15:00', dur:60, patient:'Simón Cabrera',       status:'pendiente'},
+    {day:4, prof:'diego',  start:'12:00', dur:60, patient:'Nicolás Paz',    status:'cancelado', notes:'Reprogramar — paciente de viaje.'},
 
-    {day:5, prof:'laura',  start:'09:00', dur:60, patient:'Paciente ficticio 09',     status:'pendiente'},
-    {day:5, prof:'diego',  start:'10:00', dur:60, patient:'Paciente ficticio 06',    status:'pendiente', notes:'Acompaña un familiar a la sesión.'},
+    {day:5, prof:'laura',  start:'09:00', dur:60, patient:'Inés Campos',     status:'pendiente'},
+    {day:5, prof:'diego',  start:'10:00', dur:60, patient:'Felipe Acosta',    status:'pendiente', notes:'Acompaña un familiar a la sesión.'},
 
-    {day:0, prof:'valentina', start:'09:00', dur:60, patient:'Paciente ficticio 32',       status:'pendiente'},
-    {day:1, prof:'valentina', start:'10:00', dur:30, patient:'Paciente ficticio 25',       status:'pendiente'},
-    {day:2, prof:'valentina', start:'15:00', dur:60, patient:'Paciente ficticio 24',       status:'asistio'},
-    {day:4, prof:'valentina', start:'11:00', dur:60, patient:'Paciente ficticio 26',   status:'pendiente'},
+    {day:0, prof:'valentina', start:'09:00', dur:60, patient:'Ian Correa',       status:'pendiente'},
+    {day:1, prof:'valentina', start:'10:00', dur:30, patient:'Abril Navarro',       status:'pendiente'},
+    {day:2, prof:'valentina', start:'15:00', dur:60, patient:'Zoe Salas',       status:'asistio'},
+    {day:4, prof:'valentina', start:'11:00', dur:60, patient:'Bautista Rey',   status:'pendiente'},
 
-    {day:0, prof:'pablo',  start:'10:00', dur:60, patient:'Paciente ficticio 22',      status:'pendiente'},
-    {day:1, prof:'pablo',  start:'08:00', dur:60, patient:'Paciente ficticio 23',      status:'asistio'},
-    {day:3, prof:'pablo',  start:'09:00', dur:60, patient:'Paciente ficticio 30',      status:'pendiente'},
-    {day:5, prof:'pablo',  start:'11:00', dur:60, patient:'Paciente ficticio 28',  status:'pendiente'},
+    {day:0, prof:'pablo',  start:'10:00', dur:60, patient:'Wanda Leiva',      status:'pendiente'},
+    {day:1, prof:'pablo',  start:'08:00', dur:60, patient:'Yago Méndez',      status:'asistio'},
+    {day:3, prof:'pablo',  start:'09:00', dur:60, patient:'Franco Arias',      status:'pendiente'},
+    {day:5, prof:'pablo',  start:'11:00', dur:60, patient:'Damián Lozano',  status:'pendiente'},
 
-    {day:0, prof:'rocio',  start:'13:00', dur:60, patient:'Paciente ficticio 29',  status:'pendiente'},
-    {day:2, prof:'rocio',  start:'08:30', dur:60, patient:'Paciente ficticio 31',    status:'pendiente'},
-    {day:3, prof:'rocio',  start:'16:00', dur:60, patient:'Paciente ficticio 27',     status:'no_asistio'},
-    {day:4, prof:'rocio',  start:'09:00', dur:60, patient:'Paciente ficticio 21',     status:'pendiente'},
+    {day:0, prof:'rocio',  start:'13:00', dur:60, patient:'Emilia Vega',  status:'pendiente'},
+    {day:2, prof:'rocio',  start:'08:30', dur:60, patient:'Guadalupe Soler',    status:'pendiente'},
+    {day:3, prof:'rocio',  start:'16:00', dur:60, patient:'Clara Soria',     status:'no_asistio'},
+    {day:4, prof:'rocio',  start:'09:00', dur:60, patient:'Valeria Ponce',     status:'pendiente'},
 
-    {day:0, prof:'melina', start:'11:00', dur:60, patient:'Paciente ficticio 34',      status:'pendiente'},
-    {day:1, prof:'melina', start:'13:00', dur:60, patient:'Paciente ficticio 36',     status:'pendiente'},
-    {day:3, prof:'melina', start:'10:00', dur:60, patient:'Paciente ficticio 37',    status:'asistio'},
-    {day:5, prof:'melina', start:'14:00', dur:60, patient:'Paciente ficticio 38',        status:'pendiente'},
+    {day:0, prof:'melina', start:'11:00', dur:60, patient:'Kevin Bustos',      status:'pendiente'},
+    {day:1, prof:'melina', start:'13:00', dur:60, patient:'Mateo Roldán',     status:'pendiente'},
+    {day:3, prof:'melina', start:'10:00', dur:60, patient:'Noelia Sanz',    status:'asistio'},
+    {day:5, prof:'melina', start:'14:00', dur:60, patient:'Octavio Gil',        status:'pendiente'},
 
     // Ejemplo ficticio de dos turnos a la misma hora para un profesional,
     // mostrados juntos en un solo bloque,
     // uno abajo del otro, en vez de achicar el ancho de cada uno.
-    {day:0, prof:'diego',  start:'14:00', dur:60, patient:'Paciente ficticio 19',       status:'pendiente'},
-    {day:0, prof:'diego',  start:'14:00', dur:60, patient:'Paciente ficticio 20',     status:'pendiente'}
+    {day:0, prof:'diego',  start:'14:00', dur:60, patient:'Trinidad Núñez',       status:'pendiente'},
+    {day:0, prof:'diego',  start:'14:00', dur:60, patient:'Ulises Castro',     status:'pendiente'}
   ];
 
   /* ================= STATE ================= */
@@ -975,6 +984,44 @@
     mobileLayout = window.innerWidth <= MOBILE_BREAKPOINT;
     if(mobileLayout){ renderSkeletonTransposed(); renderGridTransposed(); }
     else { renderSkeleton(); renderGrid(); }
+  }
+
+  function applyDensity(){
+    SLOT_PX = compactView ? 56 : 76;
+    PX_PER_MIN = SLOT_PX / SLOT_MIN;
+    HOUR_PX = 60 * PX_PER_MIN;
+    TOTAL_PX = TOTAL_MIN * PX_PER_MIN;
+    APPT_H = compactView ? 50 : 68;
+    TR_NAME_W = compactView ? 100 : 132;
+    TR_LANE_H = compactView ? 58 : 78;
+    document.getElementById('btn-density').textContent = compactView ? 'Ampliar' : 'Compactar';
+    renderCalendar();
+  }
+
+  function csvCell(value){
+    var text = String(value == null ? '' : value);
+    return '"' + text.replace(/"/g, '""') + '"';
+  }
+
+  function exportExcel(){
+    var rows = [['Fecha','Hora','Duración (min)','Paciente','Profesional','Especialidad','Estado','Observaciones']];
+    state.appointments.slice().sort(function(a,b){
+      return (a.date+a.start+a.profId).localeCompare(b.date+b.start+b.profId);
+    }).forEach(function(a){
+      var p = PRO_MAP[a.profId] || {};
+      rows.push([a.date,a.start,a.duration,a.patient,p.name||a.profId,p.specialty||'',STATUS_DEFS[a.status] ? STATUS_DEFS[a.status].label : a.status,a.notes||'']);
+    });
+    var csv = '\ufeff' + rows.map(function(row){ return row.map(csvCell).join(';'); }).join('\r\n');
+    var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = 'agenda-'+fmtISO(state.viewDate)+'.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast('Archivo para Excel descargado');
   }
 
   // Repinta solo los turnos (sin reconstruir el esqueleto de la agenda), en el
@@ -1635,6 +1682,11 @@
     openCreatePanel(fmtISO(state.viewDate), '09:00', '');
   });
   document.getElementById('btn-reset-demo').addEventListener('click', resetDemo);
+  document.getElementById('btn-density').addEventListener('click', function(){
+    compactView = !compactView;
+    applyDensity();
+  });
+  document.getElementById('btn-excel').addEventListener('click', exportExcel);
 
   document.getElementById('panel-close').addEventListener('click', closePanel);
   document.getElementById('backdrop').addEventListener('click', closePanel);
