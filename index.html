@@ -383,6 +383,7 @@
     .panel, .backdrop, .appt, .btn{ transition:none !important; }
   }
 
+
   @media (max-width: 640px){
     .topbar{ padding:9px 12px; gap:8px; }
     .brand-name{ font-size:14.5px; }
@@ -451,6 +452,18 @@
     </div>
 
     <div class="field">
+      <label for="f-insurance">Obra social</label>
+      <select id="f-insurance">
+        <option value="PAMI">PAMI</option>
+        <option value="OSDE">OSDE</option>
+        <option value="Swiss Medical">Swiss Medical</option>
+        <option value="Sancor Salud">Sancor Salud</option>
+        <option value="Apross">Apross</option>
+        <option value="Particular">Particular</option>
+      </select>
+    </div>
+
+    <div class="field">
       <label for="f-pro">Profesional</label>
       <select id="f-pro"></select>
       <div class="spec-hint" id="f-spec-hint"></div>
@@ -507,7 +520,7 @@
   "use strict";
 
   /* ================= CONFIG ================= */
-  var STORAGE_KEY = 'crn-agenda-demo-publica-v11'; // fuerza la carga de los nombres de ejemplo incluso en dispositivos que ya abrieron la demo
+  var STORAGE_KEY = 'crn-agenda-demo-publica-v12';
   var START_HOUR = 8, END_HOUR = 20;
   var SLOT_MIN = 30, SLOT_PX = 56;
   var PX_PER_MIN = SLOT_PX / SLOT_MIN;
@@ -544,6 +557,13 @@
     no_asistio: {label:'No asistió',  icon:'✕'},
     cancelado:  {label:'Cancelado',   icon:'–'}
   };
+
+  var INSURANCES = ['PAMI','OSDE','Swiss Medical','Sancor Salud','Apross','Particular'];
+  function insuranceForPatient(name){
+    var sum = 0;
+    String(name || '').split('').forEach(function(ch){ sum += ch.charCodeAt(0); });
+    return INSURANCES[sum % INSURANCES.length];
+  }
 
   var BASE_PATIENTS = [
     // Personas ficticias precargadas exclusivamente para esta demostración pública
@@ -683,6 +703,7 @@
         duration: d.dur,
         profId: d.prof,
         patient: d.patient,
+        insurance: d.insurance || insuranceForPatient(d.patient),
         status: d.status,
         notes: d.notes || ''
       };
@@ -706,6 +727,7 @@
         var data = JSON.parse(raw);
         if(data && Array.isArray(data.appointments) && data.appointments.length){
           state.appointments = data.appointments;
+          state.appointments.forEach(function(a){ if(!a.insurance) a.insurance = insuranceForPatient(a.patient); });
           state.patients = data.patients && data.patients.length ? data.patients : BASE_PATIENTS.slice();
           return;
         }
@@ -1004,22 +1026,63 @@
       showToast('No se pudo cargar el exportador de Excel');
       return;
     }
-    var rows = [['Fecha','Hora','Duración (min)','Paciente','Profesional','Especialidad','Estado','Observaciones']];
-    state.appointments.slice().sort(function(a,b){
+    var ordered = state.appointments.slice().sort(function(a,b){
       return (a.date+a.start+a.profId).localeCompare(b.date+b.start+b.profId);
-    }).forEach(function(a){
-      var p = PRO_MAP[a.profId] || {};
-      rows.push([a.date,a.start,a.duration,a.patient,p.name||a.profId,p.specialty||'',STATUS_DEFS[a.status] ? STATUS_DEFS[a.status].label : a.status,a.notes||'']);
     });
+    var rows = [['Fecha','Hora','Duración (min)','Paciente','Obra social','Profesional','Especialidad','Estado','Observaciones']];
+    ordered.forEach(function(a){
+      var p = PRO_MAP[a.profId] || {};
+      rows.push([a.date,a.start,a.duration,a.patient,a.insurance||insuranceForPatient(a.patient),p.name||a.profId,p.specialty||'',STATUS_DEFS[a.status] ? STATUS_DEFS[a.status].label : a.status,a.notes||'']);
+    });
+
+    var patientSummary = {};
+    var professionalSummary = {};
+    ordered.forEach(function(a){
+      var insurance = a.insurance || insuranceForPatient(a.patient);
+      if(!patientSummary[a.patient]) patientSummary[a.patient] = {insurance:insurance,total:0,visits:0,absences:0,cancelled:0};
+      var ps = patientSummary[a.patient];
+      ps.total++;
+      if(a.status==='asistio') ps.visits++;
+      if(a.status==='no_asistio') ps.absences++;
+      if(a.status==='cancelado') ps.cancelled++;
+
+      var pro = PRO_MAP[a.profId] || {name:a.profId,specialty:''};
+      if(!professionalSummary[a.profId]) professionalSummary[a.profId] = {name:pro.name,specialty:pro.specialty,total:0,visits:0,minutes:0};
+      var prs = professionalSummary[a.profId];
+      prs.total++;
+      if(a.status==='asistio'){
+        prs.visits++;
+        prs.minutes += Number(a.duration) || 0;
+      }
+    });
+
+    var patientRows = [['Paciente','Obra social','Turnos programados','Visitas realizadas','Ausencias','Cancelados']];
+    Object.keys(patientSummary).sort().forEach(function(name){
+      var x = patientSummary[name];
+      patientRows.push([name,x.insurance,x.total,x.visits,x.absences,x.cancelled]);
+    });
+
+    var professionalRows = [['Profesional','Especialidad','Turnos programados','Atenciones realizadas','Horas trabajadas']];
+    Object.keys(professionalSummary).sort(function(a,b){ return professionalSummary[a].name.localeCompare(professionalSummary[b].name); }).forEach(function(id){
+      var x = professionalSummary[id];
+      professionalRows.push([x.name,x.specialty,x.total,x.visits,Number((x.minutes/60).toFixed(2))]);
+    });
+
     var sheet = XLSX.utils.aoa_to_sheet(rows);
     sheet['!cols'] = [
-      {wch:12}, {wch:8}, {wch:16}, {wch:24},
+      {wch:12}, {wch:8}, {wch:16}, {wch:24}, {wch:18},
       {wch:24}, {wch:22}, {wch:14}, {wch:38}
     ];
+    var patientSheet = XLSX.utils.aoa_to_sheet(patientRows);
+    patientSheet['!cols'] = [{wch:26},{wch:20},{wch:19},{wch:18},{wch:12},{wch:12}];
+    var professionalSheet = XLSX.utils.aoa_to_sheet(professionalRows);
+    professionalSheet['!cols'] = [{wch:26},{wch:24},{wch:19},{wch:21},{wch:18}];
     var workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, sheet, 'Agenda');
+    XLSX.utils.book_append_sheet(workbook, patientSheet, 'Pacientes');
+    XLSX.utils.book_append_sheet(workbook, professionalSheet, 'Profesionales');
     XLSX.writeFile(workbook, 'agenda-'+fmtISO(state.viewDate)+'.xlsx', {compression:true});
-    showToast('Archivo .xlsx descargado');
+    showToast('Excel con agenda y resúmenes descargado');
   }
 
   // Repinta solo los turnos (sin reconstruir el esqueleto de la agenda), en el
@@ -1548,6 +1611,7 @@
     document.getElementById('btn-delete').style.display = 'none';
     populateProSelect(); populatePatientList();
     document.getElementById('f-patient').value = '';
+    document.getElementById('f-insurance').value = 'PAMI';
     document.getElementById('f-pro').value = profId || '';
     document.getElementById('f-spec-hint').textContent = (profId && PRO_MAP[profId]) ? PRO_MAP[profId].specialty : '';
     document.getElementById('f-date').value = date;
@@ -1570,6 +1634,7 @@
     document.getElementById('btn-delete').style.display = '';
     populateProSelect(); populatePatientList();
     document.getElementById('f-patient').value = appt.patient;
+    document.getElementById('f-insurance').value = appt.insurance || insuranceForPatient(appt.patient);
     document.getElementById('f-pro').value = appt.profId;
     document.getElementById('f-spec-hint').textContent = PRO_MAP[appt.profId] ? PRO_MAP[appt.profId].specialty : '';
     document.getElementById('f-date').value = appt.date;
@@ -1607,6 +1672,7 @@
 
   function savePanel(){
     var patient = document.getElementById('f-patient').value.trim();
+    var insurance = document.getElementById('f-insurance').value;
     var profId = document.getElementById('f-pro').value;
     var date = document.getElementById('f-date').value;
     var start = document.getElementById('f-time').value;
@@ -1624,14 +1690,14 @@
       state.appointments.push({
         id: 'a'+Date.now()+Math.floor(Math.random()*1000),
         date: date, start: start, duration: duration,
-        profId: profId, patient: patient, status: status, notes: notes
+        profId: profId, patient: patient, insurance: insurance, status: status, notes: notes
       });
       showToast('Turno creado');
     } else {
       var appt = findAppt(state.editingId);
       if(appt){
         appt.date=date; appt.start=start; appt.duration=duration;
-        appt.profId=profId; appt.patient=patient; appt.status=status; appt.notes=notes;
+        appt.profId=profId; appt.patient=patient; appt.insurance=insurance; appt.status=status; appt.notes=notes;
         showToast('Turno actualizado');
       }
     }
