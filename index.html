@@ -1,0 +1,1665 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Agenda CRN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F8F7;
+    --surface:#FFFFFF;
+    --surface-2:#FBFCFB;
+    --ink:#1E2A27;
+    --ink-soft:#41524D;
+    --muted:#758580;
+    --border:#E3E9E6;
+    --border-strong:#CFD9D5;
+    --accent:#2F7A6B;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#E4F1EC;
+    --danger:#C1553F;
+    --today-tint:#EEF6F2;
+    --shadow-sm: 0 1px 2px rgba(20,40,35,.06);
+    --shadow-md: 0 6px 20px rgba(20,40,35,.10);
+    --shadow-lg: 0 16px 40px rgba(20,40,35,.16);
+    --radius:10px;
+    --radius-sm:7px;
+    --font-display:'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-body:'Inter', 'Segoe UI', system-ui, sans-serif;
+
+    --c-ana:#3E6FA6;
+    --c-sofia:#3E9463;
+    --c-martin:#7C5CB8;
+    --c-carla:#C77A28;
+    --c-laura:#0E93A0;
+    --c-diego:#BD5C82;
+    --c-valentina:#B23A3A;
+    --c-pablo:#8A9A3B;
+    --c-rocio:#5D5FA6;
+    --c-melina:#C9A227;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#141B19;
+      --surface:#1B2422;
+      --surface-2:#202B28;
+      --ink:#EAF1EE;
+      --ink-soft:#B9C7C2;
+      --muted:#83938D;
+      --border:#2B3734;
+      --border-strong:#3A4844;
+      --accent:#4FB79E;
+      --accent-ink:#0E1615;
+      --accent-soft:#223531;
+      --danger:#E08872;
+      --today-tint:#1E2E29;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+      --shadow-md: 0 6px 20px rgba(0,0,0,.35);
+      --shadow-lg: 0 16px 40px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#141B19;
+    --surface:#1B2422;
+    --surface-2:#202B28;
+    --ink:#EAF1EE;
+    --ink-soft:#B9C7C2;
+    --muted:#83938D;
+    --border:#2B3734;
+    --border-strong:#3A4844;
+    --accent:#4FB79E;
+    --accent-ink:#0E1615;
+    --accent-soft:#223531;
+    --danger:#E08872;
+    --today-tint:#1E2E29;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+    --shadow-md: 0 6px 20px rgba(0,0,0,.35);
+    --shadow-lg: 0 16px 40px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+    overscroll-behavior:none;
+  }
+  button{font-family:inherit; cursor:pointer;}
+  input,select,textarea{font-family:inherit; font-size:16px;}
+  ::selection{background:var(--accent-soft);}
+
+  .app{ height:100vh; height:100dvh; display:flex; flex-direction:column; }
+
+  /* ---------- Header ---------- */
+  .topbar{
+    display:flex; align-items:center; gap:14px;
+    padding:10px 16px; border-bottom:1px solid var(--border);
+    background:var(--surface); flex-shrink:0;
+  }
+  .brand{ display:flex; flex-direction:column; margin-right:auto; min-width:0; overflow:hidden; }
+  .brand-name{
+    font-family:var(--font-display); font-weight:800; font-size:16px; letter-spacing:-.01em;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .brand-sub{ font-size:12px; color:var(--muted); margin-top:1px; }
+
+  .btn{
+    border:1px solid var(--border-strong); background:var(--surface); color:var(--ink);
+    border-radius:9px; padding:9px 14px; font-size:13.5px; font-weight:600;
+    display:inline-flex; align-items:center; gap:6px; transition:background .15s, box-shadow .15s, transform .05s;
+    min-height:40px; touch-action:manipulation; flex-shrink:0;
+  }
+  .btn:hover{ background:var(--surface-2); }
+  .btn:active{ transform:translateY(1px); }
+  .btn-icon{ padding:9px 12px; }
+  .btn-primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); box-shadow:var(--shadow-sm); }
+  .btn-primary:hover{ filter:brightness(1.05); }
+
+  /* Botón chico y discreto para reiniciar los datos de demo — ya no forma parte
+     de una barra de filtros (se sacó por completo), así que vive como un ícono
+     suelto junto al nombre de la clínica. */
+  .btn-reset-icon{
+    flex-shrink:0; width:32px; height:32px; border-radius:50%; border:1px solid var(--border-strong);
+    background:var(--surface); color:var(--muted); font-size:15px; display:flex; align-items:center;
+    justify-content:center; touch-action:manipulation;
+  }
+  .btn-reset-icon:hover{ background:var(--surface-2); color:var(--ink); }
+
+  /* ---------- Day nav (Hoy / ‹ › / fecha) — vive dentro del encabezado del calendario ---------- */
+  .day-nav-btn{
+    flex-shrink:0; border:1px solid var(--border-strong); background:var(--surface); color:var(--ink-soft);
+    border-radius:7px; font-weight:700; touch-action:manipulation; display:inline-flex; align-items:center; justify-content:center;
+  }
+  .day-nav-btn:hover{ background:var(--surface-2); }
+  .day-nav-today{ font-size:11px; padding:0 9px; height:26px; }
+  .day-nav-arrow{ font-size:14px; width:26px; height:26px; padding:0; }
+
+  /* ---------- Botón flotante "Nuevo turno" (FAB), sobre el calendario ---------- */
+  .fab-new{
+    position:absolute; right:16px; bottom:16px;
+    width:54px; height:54px; border-radius:50%; border:none;
+    background:var(--accent); color:var(--accent-ink);
+    font-size:26px; font-weight:600; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:var(--shadow-lg); cursor:pointer; touch-action:manipulation;
+    z-index:15; transition:filter .12s, transform .05s;
+  }
+  .fab-new:hover{ filter:brightness(1.06); }
+  .fab-new:active{ transform:scale(.95); }
+
+  /* ---------- Calendar ---------- */
+  .body-row{ flex:1; display:flex; min-height:0; }
+  .cal-wrapper{ flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--surface); position:relative; }
+
+  .cal-header-row{
+    border-bottom:1px solid var(--border); flex-shrink:0; background:var(--surface); position:relative; z-index:8;
+  }
+  .cal-corner{ border-right:1px solid var(--border); }
+
+  .day-title-cell{
+    padding:6px 10px; display:flex; align-items:center; gap:7px; overflow:hidden;
+  }
+  .dtc-date-group{
+    display:flex; align-items:baseline; gap:6px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    font-family:var(--font-display); font-weight:700; font-size:14.5px; min-width:0;
+  }
+  .day-title-cell .dtc-name{ text-transform:capitalize; }
+  .day-title-cell .dtc-num{ font-size:16px; }
+  .day-title-cell .dtc-month{ color:var(--muted); font-weight:600; font-size:11.5px; }
+  .day-title-cell.is-today .dtc-date-group{ color:var(--accent); }
+  .dtc-today-pill{
+    font-size:9.5px; font-weight:800; background:var(--accent); color:var(--accent-ink);
+    padding:2px 7px; border-radius:999px; text-transform:uppercase; letter-spacing:.04em; margin-left:2px;
+    flex-shrink:0;
+  }
+
+  .pro-head-cell{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    padding:6px 2px 7px; border-top:1px solid var(--border); border-right:1px solid var(--border);
+    border-bottom:3px solid var(--pc, var(--border-strong)); min-width:0;
+  }
+  .phc-spec{ font-size:10.5px; font-weight:800; letter-spacing:.01em; color:var(--pc); line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .phc-name{ font-size:10px; color:var(--muted); font-weight:600; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .cal-header-row.compact .pro-head-cell{ padding:5px 1px 6px; }
+  .cal-header-row.compact .phc-spec{ font-size:9px; }
+  .cal-header-row.compact .phc-name{ font-size:8px; }
+
+  .empty-cal-msg{ padding:60px 20px; text-align:center; color:var(--muted); font-size:13.5px; }
+
+  .cal-scroll{ flex:1; overflow:auto; position:relative; -webkit-overflow-scrolling:touch; }
+  .cal-body-grid{ position:relative; }
+
+  .time-col{ position:relative; border-right:1px solid var(--border); }
+  .time-label{
+    position:absolute; right:6px; transform:translateY(-50%);
+    font-variant-numeric:tabular-nums;
+    font-size:10.5px; color:var(--ink-soft); font-weight:600;
+  }
+  .time-col.compact .time-label{ font-size:9px; right:4px; }
+
+  .day-col{
+    position:relative; border-right:1px solid var(--border);
+    background-image: repeating-linear-gradient(to bottom, var(--border) 0, var(--border) 1px, transparent 1px, transparent 56px);
+    cursor:pointer;
+  }
+  .day-col:last-child{ border-right:none; }
+  .day-col.is-today{ background-color:var(--today-tint); }
+
+  .now-line{ position:absolute; left:0; right:0; height:0; border-top:2px solid var(--danger); z-index:5; pointer-events:none; }
+  .now-line.has-dot::before{
+    content:''; position:absolute; left:-4px; top:-4px; width:8px; height:8px; border-radius:50%; background:var(--danger);
+  }
+
+  /* ---------- Diseño transpuesto (celular): profesionales en filas, horario en horizontal ----------
+     Cada profesional pasa a ser una fila ancha con su nombre completo fijo a la
+     izquierda (position:sticky); el horario del día corre en horizontal dentro de
+     esa fila, con scroll. El ancho de cada turno lo da su duración en vez del
+     espacio repartido entre 10 columnas, así que los nombres tienen mucho más
+     lugar para mostrarse completos sin cortarse. La franja de horario (arriba) y
+     el nombre de cada fila quedan "pegados" (sticky) al hacer scroll. */
+  .cal-scroll.tr-mode{ overflow:auto; }
+  .tr-grid{ display:flex; flex-direction:column; width:max-content; min-width:100%; }
+  .tr-time-header{ display:flex; position:sticky; top:0; z-index:9; background:var(--surface); }
+  .tr-corner{
+    position:sticky; left:0; z-index:10; flex:0 0 var(--tr-name-w); width:var(--tr-name-w);
+    background:var(--surface); border-right:1px solid var(--border); border-bottom:1px solid var(--border);
+  }
+  .tr-time-track{ position:relative; flex:0 0 auto; height:26px; border-bottom:1px solid var(--border); }
+  .tr-time-label{
+    position:absolute; top:50%; transform:translate(-2px,-50%);
+    font-size:10.5px; font-weight:700; color:var(--ink-soft); font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .tr-row{ display:flex; }
+  .tr-row-name{
+    position:sticky; left:0; z-index:5; flex:0 0 var(--tr-name-w); width:var(--tr-name-w);
+    background:var(--surface); border-right:1px solid var(--border); border-bottom:1px solid var(--border);
+    border-left:3px solid var(--pc, var(--border-strong));
+    display:flex; flex-direction:column; justify-content:center; gap:1px; padding:6px 9px; min-width:0;
+  }
+  .tr-row-spec{ font-size:10px; font-weight:800; letter-spacing:.02em; color:var(--pc); line-height:1.15; }
+  .tr-row-person{
+    font-size:12px; font-weight:700; color:var(--ink); line-height:1.25; overflow-wrap:break-word;
+    overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  }
+  .tr-row-track{
+    position:relative; flex:0 0 auto; border-bottom:1px solid var(--border);
+    background-image: repeating-linear-gradient(to right, var(--border) 0, var(--border) 1px, transparent 1px, transparent 56px);
+    cursor:pointer;
+  }
+  .tr-row.is-today .tr-row-track{ background-color:var(--today-tint); }
+  .tr-now-line{ position:absolute; top:0; bottom:0; width:0; border-left:2px solid var(--danger); z-index:5; pointer-events:none; }
+  .tr-now-line.has-dot::before{
+    content:''; position:absolute; top:-4px; left:-4px; width:8px; height:8px; border-radius:50%; background:var(--danger);
+  }
+
+  .appt{
+    position:absolute; left:3px; right:3px; border-radius:7px; overflow:hidden;
+    background: color-mix(in srgb, var(--pc) 16%, var(--surface));
+    border:1px solid color-mix(in srgb, var(--pc) 45%, var(--border));
+    border-left:4px solid var(--pc);
+    padding:4px 6px; cursor:grab; z-index:2; transition:box-shadow .12s, filter .12s;
+    box-shadow:var(--shadow-sm); touch-action:none;
+    display:flex; align-items:center;
+  }
+  .appt:hover{ box-shadow:var(--shadow-md); z-index:6; filter:brightness(1.0); }
+  .appt.dragging{ opacity:.55; cursor:grabbing; box-shadow:var(--shadow-lg); z-index:9; }
+  .appt.state-cancelado{ opacity:.55; }
+  .appt.state-cancelado .appt-patient{ text-decoration:line-through; }
+  /* El nombre se estira verticalmente (hasta 2 líneas) en vez de cortarse a una
+     inicial cuando la columna es angosta (9 profesionales juntos) — como hace
+     Google Calendar en celular. El alto del bloque lo da el contenido (auto),
+     limitado por el espacio disponible hasta el próximo turno (ver ev._boxH). */
+  .appt-patient{
+    font-size:11.5px; font-weight:700; color:var(--ink); line-height:1.25;
+    overflow:hidden; text-overflow:ellipsis; white-space:normal; word-break:break-word;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    min-width:0; flex:1;
+  }
+  /* La hora, la duración y el ícono de estado ya no se muestran de forma permanente
+     en el bloque — solo el nombre del paciente, para que tenga todo el ancho y alto
+     disponibles. El estado y el horario completo quedan disponibles al pasar el
+     mouse (title = tooltip nativo) o al tocar el turno, que abre el panel; ahí se
+     registra la asistencia, para usarla después (ej. reportes). El color del borde
+     sigue identificando al profesional, y "Cancelado" se ve tachado y atenuado
+     cuando se lo muestra a propósito con el filtro de Estado (por defecto se oculta
+     de la agenda para liberar ese horario visualmente). */
+
+  /* Dos turnos a la misma hora para el mismo profesional: un solo bloque de ancho
+     completo, con los nombres apilados uno abajo del otro y separados por una
+     línea — ver buildMergedApptEl. */
+  .appt.appt-merged{ flex-direction:column; align-items:stretch; padding:0; }
+  .appt-merge-row{
+    flex:1; min-height:0; display:flex; align-items:center; padding:1px 4px;
+    cursor:grab; overflow:hidden; touch-action:none;
+  }
+  .appt-merge-row:not(:last-child){ border-bottom:1px solid color-mix(in srgb, var(--pc) 40%, var(--surface)); }
+  .appt-merge-row .appt-patient{ -webkit-line-clamp:1; }
+  .appt-merge-row.dragging{ opacity:.55; }
+  .appt-merge-row.state-cancelado .appt-patient{ text-decoration:line-through; }
+
+  .quick-actions{
+    position:absolute; top:3px; right:3px; display:flex; gap:3px; opacity:.75; transition:opacity .12s;
+  }
+  .appt:hover .quick-actions{ opacity:1; }
+  .qa-btn{
+    width:20px; height:20px; border-radius:50%; border:1px solid var(--border-strong); background:var(--surface);
+    display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:800; color:var(--ink-soft);
+    box-shadow:var(--shadow-sm); touch-action:manipulation;
+  }
+  .qa-btn.yes:hover{ background:#3E9463; color:#fff; border-color:#3E9463; }
+  .qa-btn.no:hover{ background:var(--danger); color:#fff; border-color:var(--danger); }
+
+  .empty-hint{
+    position:absolute; left:3px; right:3px; border-radius:8px; border:1.5px dashed var(--accent);
+    background:var(--accent-soft); pointer-events:none; z-index:1;
+  }
+
+  /* ---------- Side panel ---------- */
+  .backdrop{
+    position:fixed; inset:0; background:rgba(10,20,18,.32); backdrop-filter:blur(1px);
+    opacity:0; pointer-events:none; transition:opacity .18s; z-index:40;
+  }
+  .backdrop.open{ opacity:1; pointer-events:auto; }
+
+  .panel{
+    position:fixed; top:0; right:0; bottom:0; width:400px; max-width:100vw;
+    background:var(--surface); box-shadow:var(--shadow-lg); z-index:41;
+    transform:translateX(100%); transition:transform .22s cubic-bezier(.2,.8,.3,1);
+    display:flex; flex-direction:column;
+  }
+  .panel.open{ transform:translateX(0); }
+  .panel-head{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .panel-title{ font-family:var(--font-display); font-weight:700; font-size:15.5px; }
+  .panel-close{ width:34px; height:34px; border-radius:50%; border:none; background:var(--surface-2); font-size:15px; color:var(--muted); touch-action:manipulation; }
+  .panel-close:hover{ background:var(--border); color:var(--ink); }
+
+  .panel-body{ padding:18px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:16px; }
+
+  .quick-status-row{ display:flex; gap:6px; flex-wrap:wrap; }
+  .qs-btn{
+    flex:1; min-width:80px; padding:9px 6px; border-radius:8px; border:1px solid var(--border-strong);
+    background:var(--surface); font-size:12px; font-weight:700; color:var(--ink-soft); text-align:center;
+    touch-action:manipulation;
+  }
+  .qs-btn.active{ background:var(--ink); border-color:var(--ink); color:var(--surface); }
+  .qs-btn:hover{ background:var(--surface-2); }
+  .qs-btn.active:hover{ background:var(--ink); }
+
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field label{ font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .field input, .field select, .field textarea{
+    border:1px solid var(--border-strong); border-radius:8px; padding:10px; font-size:15px;
+    background:var(--surface); color:var(--ink); width:100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--accent); outline-offset:-1px; border-color:var(--accent); }
+  .field textarea{ resize:vertical; min-height:64px; }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; min-width:0; }
+  .spec-hint{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+  .panel-footer{ padding:14px 18px; border-top:1px solid var(--border); display:flex; gap:10px; flex-shrink:0; padding-bottom:calc(14px + env(safe-area-inset-bottom)); }
+  .btn-danger{ color:var(--danger); border-color:var(--danger); background:transparent; }
+  .btn-danger:hover{ background:color-mix(in srgb, var(--danger) 10%, transparent); }
+  .btn-block{ flex:1; justify-content:center; }
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(10px);
+    background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:8px; font-size:13px; font-weight:600;
+    box-shadow:var(--shadow-lg); z-index:60; opacity:0; pointer-events:none; transition:all .2s; max-width:90vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .cal-scroll::-webkit-scrollbar, .panel-body::-webkit-scrollbar{ width:9px; height:9px; }
+  .cal-scroll::-webkit-scrollbar-thumb, .panel-body::-webkit-scrollbar-thumb{ background:var(--border-strong); border-radius:6px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .panel, .backdrop, .appt, .btn{ transition:none !important; }
+  }
+
+  @media (max-width: 640px){
+    .topbar{ padding:9px 12px; gap:8px; }
+    .brand-name{ font-size:14.5px; }
+    .brand-sub{ display:none; }
+    .btn{ padding:8px 12px; }
+    .fab-new{ width:48px; height:48px; font-size:23px; right:12px; bottom:12px; }
+    .dtc-month{ display:none; }
+    /* Narrow columns: quick-action buttons would crowd out the patient name,
+       so on phones we rely on tap-to-open + the big quick-status buttons in the panel. */
+    .quick-actions{ display:none; }
+    .appt{ padding:3px 5px; }
+    .appt-patient{ font-size:10.5px; }
+    .appt-merge-row{ padding:1px 3px; }
+    .appt-merge-row .appt-patient{ font-size:9.5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-name">Centro de Rehabilitación Neurológica</div>
+      <div class="brand-sub">Agenda de turnos</div>
+    </div>
+    <button class="btn-reset-icon" id="btn-reset-demo" type="button" title="Restablecer demo" aria-label="Restablecer demo">↺</button>
+  </div>
+
+  <div class="body-row">
+    <div class="cal-wrapper">
+      <div class="cal-header-row" id="cal-header-row"></div>
+      <div class="cal-scroll" id="cal-scroll">
+        <div class="cal-body-grid" id="cal-body-grid"></div>
+      </div>
+      <!-- El botón de "Nuevo turno" flota sobre el calendario (como el "+" de
+           Google Calendar en celular), siempre visible sin ocupar una fila fija
+           del encabezado. -->
+      <button class="fab-new" id="btn-new" type="button" title="Nuevo turno" aria-label="Nuevo turno">+</button>
+    </div>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+<div class="panel" id="panel" role="dialog" aria-modal="true">
+  <div class="panel-head">
+    <div class="panel-title" id="panel-title">Turno</div>
+    <button class="panel-close" id="panel-close" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="field">
+      <label>Marcar asistencia rápido</label>
+      <div class="quick-status-row" id="quick-status-row"></div>
+    </div>
+
+    <div class="field">
+      <label for="f-patient">Paciente</label>
+      <input id="f-patient" list="patients-list" placeholder="Buscar o escribir paciente…" autocomplete="off" />
+      <datalist id="patients-list"></datalist>
+    </div>
+
+    <div class="field">
+      <label for="f-pro">Profesional</label>
+      <select id="f-pro"></select>
+      <div class="spec-hint" id="f-spec-hint"></div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="f-date">Día</label>
+        <input type="date" id="f-date" />
+      </div>
+      <div class="field">
+        <label for="f-time">Hora inicio</label>
+        <input type="time" id="f-time" step="1800" />
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="f-dur">Duración</label>
+        <select id="f-dur">
+          <option value="30">30 min</option>
+          <option value="60">60 min</option>
+          <option value="90">90 min</option>
+          <option value="120">120 min</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-status">Estado</label>
+        <select id="f-status">
+          <option value="pendiente">Pendiente</option>
+          <option value="asistio">Asistió</option>
+          <option value="no_asistio">No asistió</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="f-notes">Observaciones (opcional)</label>
+      <textarea id="f-notes" placeholder="Ej: requiere traslado en silla de ruedas…"></textarea>
+    </div>
+  </div>
+  <div class="panel-footer">
+    <button class="btn btn-danger" id="btn-delete">Eliminar</button>
+    <button class="btn btn-primary btn-block" id="btn-save">Guardar cambios</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= CONFIG ================= */
+  var STORAGE_KEY = 'crn-agenda-demo-publica-v9'; // subir este valor cuando cambien los datos de ejemplo (SEED_DEFS), para que los navegadores con datos guardados de una versión anterior regeneren los turnos nuevos en vez de seguir usando los viejos
+  var START_HOUR = 8, END_HOUR = 20;
+  var SLOT_MIN = 30, SLOT_PX = 56;
+  var PX_PER_MIN = SLOT_PX / SLOT_MIN;
+  var HOUR_PX = 60 * PX_PER_MIN;
+  var TOTAL_MIN = (END_HOUR - START_HOUR) * 60;
+  var TOTAL_PX = TOTAL_MIN * PX_PER_MIN;
+  var APPT_H = 50; // el turno ocupa casi toda su franja de 30 min (SLOT_PX=56), ya que en la práctica los turnos son de media hora
+  var MOBILE_BREAKPOINT = 640; // por debajo de este ancho, la agenda pasa a diseño "transpuesto": profesionales en filas, horario en horizontal (ver renderSkeletonTransposed/renderGridTransposed)
+  var TR_NAME_W = 100;  // ancho fijo de la columna de nombre de profesional en el diseño transpuesto
+  var TR_LANE_H = 58;   // alto de una "franja" de turno dentro de la fila de un profesional (diseño transpuesto) — deja lugar a la especialidad + hasta 2 líneas de nombre sin que se corten entre sí
+  var DAY_NAMES = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  // Orden de columnas igual al de la planilla real: PSMOT, FONO, FONO, KINE x4, PSPE, T.O., PSPE.
+  var PROFESSIONALS = [
+    {id:'diego',  name:'Diego Romero',    specialty:'Psicomotricidad',     abbr:'PSMOT', color:'var(--c-diego)'},
+    {id:'sofia',  name:'Sofía López',     specialty:'Fonoaudiología',      abbr:'FONO',  color:'var(--c-sofia)'},
+    {id:'valentina', name:'Valentina Ruiz',  specialty:'Fonoaudiología',   abbr:'FONO',  color:'var(--c-valentina)'},
+    {id:'ana',    name:'Ana Martínez',    specialty:'Kinesiología',        abbr:'KINE',  color:'var(--c-ana)'},
+    {id:'laura',  name:'Laura Díaz',      specialty:'Kinesiología',        abbr:'KINE',  color:'var(--c-laura)'},
+    {id:'pablo',  name:'Pablo Ibáñez',    specialty:'Kinesiología',        abbr:'KINE',  color:'var(--c-pablo)'},
+    {id:'rocio',  name:'Rocío Sosa',      specialty:'Kinesiología',        abbr:'KINE',  color:'var(--c-rocio)'},
+    {id:'carla',  name:'Carla Fernández', specialty:'Psicopedagogía',      abbr:'PSPE',  color:'var(--c-carla)'},
+    {id:'martin', name:'Martín Gómez',    specialty:'Terapia Ocupacional', abbr:'T.O.',  color:'var(--c-martin)'},
+    {id:'melina', name:'Melina Torres',   specialty:'Psicopedagogía',      abbr:'PSPE',  color:'var(--c-melina)'}
+  ];
+  var PRO_MAP = {};
+  PROFESSIONALS.forEach(function(p){ PRO_MAP[p.id] = p; });
+
+  var STATUS_DEFS = {
+    pendiente:  {label:'Pendiente',   icon:'○'},
+    asistio:    {label:'Asistió',     icon:'✓'},
+    no_asistio: {label:'No asistió',  icon:'✕'},
+    cancelado:  {label:'Cancelado',   icon:'–'}
+  };
+
+  var BASE_PATIENTS = [
+    // Personas ficticias precargadas exclusivamente para esta demostración pública
+    'Paciente ficticio 01','Paciente ficticio 02','Paciente ficticio 03','Paciente ficticio 04','Paciente ficticio 05','Paciente ficticio 06','Paciente ficticio 07','Paciente ficticio 08','Paciente ficticio 09','Paciente ficticio 10',
+    'Paciente ficticio 11','Paciente ficticio 12','Paciente ficticio 13','Paciente ficticio 14','Paciente ficticio 15','Paciente ficticio 16','Paciente ficticio 17','Paciente ficticio 18','Paciente ficticio 19','Paciente ficticio 20',
+    // Más personas ficticias disponibles en el buscador de la demostración
+    'Paciente ficticio 21','Paciente ficticio 22','Paciente ficticio 23','Paciente ficticio 24','Paciente ficticio 25','Paciente ficticio 26','Paciente ficticio 27','Paciente ficticio 28','Paciente ficticio 29','Paciente ficticio 30','Paciente ficticio 31','Paciente ficticio 32',
+    // Ejemplos ficticios adicionales
+    'Paciente ficticio 33','Paciente ficticio 34','Paciente ficticio 35','Paciente ficticio 36','Paciente ficticio 37','Paciente ficticio 38'
+  ];
+
+  var SEED_DEFS = [
+    {day:0, prof:'ana',    start:'08:00', dur:60, patient:'Paciente ficticio 01',        status:'pendiente'},
+    {day:0, prof:'ana',    start:'09:00', dur:60, patient:'Paciente ficticio 02',    status:'asistio'},
+    {day:0, prof:'sofia',  start:'10:00', dur:30, patient:'Paciente ficticio 03',    status:'pendiente'},
+    {day:0, prof:'carla',  start:'11:00', dur:60, patient:'Paciente ficticio 04',   status:'pendiente', notes:'Primera entrevista con la familia.'},
+    {day:0, prof:'laura',  start:'14:00', dur:60, patient:'Paciente ficticio 05',      status:'pendiente'},
+    {day:0, prof:'martin', start:'16:00', dur:60, patient:'Paciente ficticio 06',    status:'pendiente'},
+
+    {day:1, prof:'martin', start:'09:00', dur:60, patient:'Paciente ficticio 07',    status:'pendiente'},
+    {day:1, prof:'martin', start:'11:00', dur:60, patient:'Paciente ficticio 08',      status:'pendiente'},
+    {day:1, prof:'laura',  start:'15:00', dur:60, patient:'Paciente ficticio 09',     status:'pendiente'},
+    {day:1, prof:'sofia',  start:'16:00', dur:30, patient:'Paciente ficticio 15',    status:'pendiente'},
+    {day:1, prof:'laura',  start:'16:00', dur:60, patient:'Paciente ficticio 16',  status:'asistio'},
+    {day:1, prof:'carla',  start:'17:00', dur:60, patient:'Paciente ficticio 10',     status:'pendiente'},
+
+    {day:2, prof:'diego',  start:'09:00', dur:60, patient:'Paciente ficticio 11',     status:'pendiente', notes:'Primera evaluación de psicomotricidad.'},
+    {day:2, prof:'sofia',  start:'09:00', dur:60, patient:'Paciente ficticio 12',     status:'pendiente'},
+    {day:2, prof:'ana',    start:'08:00', dur:60, patient:'Paciente ficticio 01',        status:'pendiente'},
+    {day:2, prof:'ana',    start:'10:00', dur:60, patient:'Paciente ficticio 13',   status:'pendiente'},
+    {day:2, prof:'carla',  start:'11:00', dur:60, patient:'Paciente ficticio 14',    status:'asistio'},
+    {day:2, prof:'sofia',  start:'12:00', dur:30, patient:'Paciente ficticio 03',    status:'asistio'},
+    {day:2, prof:'martin', start:'17:00', dur:60, patient:'Paciente ficticio 08',      status:'cancelado'},
+    {day:2, prof:'carla',  start:'18:00', dur:60, patient:'Paciente ficticio 10',     status:'no_asistio'},
+
+    {day:3, prof:'martin', start:'10:00', dur:60, patient:'Paciente ficticio 07',    status:'asistio'},
+    {day:3, prof:'laura',  start:'14:00', dur:60, patient:'Paciente ficticio 05',      status:'no_asistio'},
+    {day:3, prof:'sofia',  start:'15:30', dur:60, patient:'Paciente ficticio 12',     status:'no_asistio'},
+    {day:3, prof:'carla',  start:'18:00', dur:60, patient:'Paciente ficticio 04',   status:'pendiente'},
+
+    {day:4, prof:'ana',    start:'08:00', dur:60, patient:'Paciente ficticio 02',    status:'pendiente'},
+    {day:4, prof:'sofia',  start:'09:30', dur:60, patient:'Paciente ficticio 17',      status:'pendiente', notes:'Trae informe del colegio.'},
+    {day:4, prof:'diego',  start:'10:00', dur:60, patient:'Paciente ficticio 13',   status:'pendiente'},
+    {day:4, prof:'ana',    start:'11:00', dur:60, patient:'Paciente ficticio 11',     status:'cancelado'},
+    {day:4, prof:'laura',  start:'15:00', dur:60, patient:'Paciente ficticio 18',       status:'pendiente'},
+    {day:4, prof:'diego',  start:'12:00', dur:60, patient:'Paciente ficticio 14',    status:'cancelado', notes:'Reprogramar — paciente de viaje.'},
+
+    {day:5, prof:'laura',  start:'09:00', dur:60, patient:'Paciente ficticio 09',     status:'pendiente'},
+    {day:5, prof:'diego',  start:'10:00', dur:60, patient:'Paciente ficticio 06',    status:'pendiente', notes:'Acompaña un familiar a la sesión.'},
+
+    {day:0, prof:'valentina', start:'09:00', dur:60, patient:'Paciente ficticio 32',       status:'pendiente'},
+    {day:1, prof:'valentina', start:'10:00', dur:30, patient:'Paciente ficticio 25',       status:'pendiente'},
+    {day:2, prof:'valentina', start:'15:00', dur:60, patient:'Paciente ficticio 24',       status:'asistio'},
+    {day:4, prof:'valentina', start:'11:00', dur:60, patient:'Paciente ficticio 26',   status:'pendiente'},
+
+    {day:0, prof:'pablo',  start:'10:00', dur:60, patient:'Paciente ficticio 22',      status:'pendiente'},
+    {day:1, prof:'pablo',  start:'08:00', dur:60, patient:'Paciente ficticio 23',      status:'asistio'},
+    {day:3, prof:'pablo',  start:'09:00', dur:60, patient:'Paciente ficticio 30',      status:'pendiente'},
+    {day:5, prof:'pablo',  start:'11:00', dur:60, patient:'Paciente ficticio 28',  status:'pendiente'},
+
+    {day:0, prof:'rocio',  start:'13:00', dur:60, patient:'Paciente ficticio 29',  status:'pendiente'},
+    {day:2, prof:'rocio',  start:'08:30', dur:60, patient:'Paciente ficticio 31',    status:'pendiente'},
+    {day:3, prof:'rocio',  start:'16:00', dur:60, patient:'Paciente ficticio 27',     status:'no_asistio'},
+    {day:4, prof:'rocio',  start:'09:00', dur:60, patient:'Paciente ficticio 21',     status:'pendiente'},
+
+    {day:0, prof:'melina', start:'11:00', dur:60, patient:'Paciente ficticio 34',      status:'pendiente'},
+    {day:1, prof:'melina', start:'13:00', dur:60, patient:'Paciente ficticio 36',     status:'pendiente'},
+    {day:3, prof:'melina', start:'10:00', dur:60, patient:'Paciente ficticio 37',    status:'asistio'},
+    {day:5, prof:'melina', start:'14:00', dur:60, patient:'Paciente ficticio 38',        status:'pendiente'},
+
+    // Ejemplo ficticio de dos turnos a la misma hora para un profesional,
+    // mostrados juntos en un solo bloque,
+    // uno abajo del otro, en vez de achicar el ancho de cada uno.
+    {day:0, prof:'diego',  start:'14:00', dur:60, patient:'Paciente ficticio 19',       status:'pendiente'},
+    {day:0, prof:'diego',  start:'14:00', dur:60, patient:'Paciente ficticio 20',     status:'pendiente'}
+  ];
+
+  /* ================= STATE ================= */
+  var state = {
+    viewDate: defaultViewDate(),
+    appointments: [],
+    patients: BASE_PATIENTS.slice(),
+    editingId: null,
+    creating: false,
+    draft: null
+  };
+  var mobileLayout = false; // true = diseño transpuesto (profesionales en filas); se decide en cada renderCalendar()
+
+  /* ================= DATE HELPERS ================= */
+  function mondayOf(d){
+    var date = new Date(d);
+    var day = (date.getDay() + 6) % 7;
+    date.setDate(date.getDate() - day);
+    date.setHours(0,0,0,0);
+    return date;
+  }
+  function addDays(d, n){ var r = new Date(d); r.setDate(r.getDate()+n); return r; }
+  function fmtISO(d){
+    var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+day;
+  }
+  function sameDate(a,b){ return fmtISO(a)===fmtISO(b); }
+  function isSunday(d){ return d.getDay()===0; }
+  function nextValidDay(d){ var n = addDays(d,1); if(isSunday(n)) n = addDays(n,1); return n; }
+  function prevValidDay(d){ var p = addDays(d,-1); if(isSunday(p)) p = addDays(p,-1); return p; }
+  function defaultViewDate(){
+    var t = new Date(); t.setHours(0,0,0,0);
+    if(isSunday(t)) return addDays(t,1);
+    return t;
+  }
+  function minutesToTime(mins){
+    var total = START_HOUR*60 + mins;
+    var h = Math.floor(total/60), m = total%60;
+    return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+  // Versión sin cero inicial (ej. "8:00" en vez de "08:00"), para que las
+  // etiquetas de hora ocupen menos ancho cuando hay muchos profesionales juntos.
+  function minutesToTimeShort(mins){
+    var total = START_HOUR*60 + mins;
+    var h = Math.floor(total/60), m = total%60;
+    return String(h)+':'+String(m).padStart(2,'0');
+  }
+  function timeToMinutesFromStart(t){
+    var parts = t.split(':'); var h = parseInt(parts[0],10), m = parseInt(parts[1],10);
+    return (h*60+m) - START_HOUR*60;
+  }
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+  /* ================= SEED / STORAGE ================= */
+  function generateSeed(){
+    var monday = mondayOf(new Date());
+    return SEED_DEFS.map(function(d, i){
+      return {
+        id: 'a' + i + '-' + Date.now(),
+        date: fmtISO(addDays(monday, d.day)),
+        start: d.start,
+        duration: d.dur,
+        profId: d.prof,
+        patient: d.patient,
+        status: d.status,
+        notes: d.notes || ''
+      };
+    });
+  }
+
+  function save(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        appointments: state.appointments,
+        patients: state.patients
+      }));
+    }catch(e){ /* storage unavailable — demo still works in-memory */ }
+  }
+
+  function loadOrSeed(){
+    var raw = null;
+    try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){}
+    if(raw){
+      try{
+        var data = JSON.parse(raw);
+        if(data && Array.isArray(data.appointments) && data.appointments.length){
+          state.appointments = data.appointments;
+          state.patients = data.patients && data.patients.length ? data.patients : BASE_PATIENTS.slice();
+          return;
+        }
+      }catch(e){}
+    }
+    state.appointments = generateSeed();
+    save();
+  }
+
+  function resetDemo(){
+    if(!confirm('¿Restablecer la agenda a los datos de demostración originales? Se perderán los cambios realizados.')) return;
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+    state.viewDate = defaultViewDate();
+    state.patients = BASE_PATIENTS.slice();
+    state.appointments = generateSeed();
+    save();
+    renderAll();
+    showToast('Datos de demo restablecidos');
+  }
+
+  function unique(arr){ return arr.filter(function(v,i){ return arr.indexOf(v)===i; }); }
+
+  function getVisiblePros(){
+    return PROFESSIONALS;
+  }
+
+  /* ================= RENDER: CALENDAR SKELETON (1 day × professionals) ================= */
+  function dayInfo(d){
+    return {
+      weekday: DAY_NAMES[(d.getDay()+6)%7],
+      dnum: d.getDate(),
+      month: MONTH_NAMES[d.getMonth()],
+      isToday: sameDate(d, new Date())
+    };
+  }
+
+  function renderSkeleton(){
+    var headerRow = document.getElementById('cal-header-row');
+    var grid = document.getElementById('cal-body-grid');
+    var scroll = document.getElementById('cal-scroll');
+    var day = state.viewDate;
+    var pros = getVisiblePros();
+    var N = pros.length;
+
+    headerRow.innerHTML = '';
+    grid.innerHTML = '';
+    // Vuelve a la clase/estructura normal por si el render anterior fue el
+    // diseño transpuesto de celular (renderSkeletonTransposed).
+    grid.className = 'cal-body-grid';
+    scroll.classList.remove('tr-mode');
+
+    if(N===0){
+      headerRow.style.display = 'none';
+      grid.style.display = 'block';
+      grid.style.height = 'auto';
+      grid.innerHTML = '<div class="empty-cal-msg">No hay profesionales visibles. Activá alguno en los filtros de arriba.</div>';
+      return;
+    }
+
+    // El ancho de columna se calcula según el espacio real disponible, para que
+    // los N profesionales visibles entren siempre juntos en pantalla sin scroll
+    // horizontal (como en la hoja de papel), sea cual sea la cantidad.
+    var availW = (document.getElementById('cal-scroll').clientWidth) || window.innerWidth || 375;
+    var normalTimeColW = 44, normalColW = 52;
+    var compact = (normalTimeColW + N*normalColW) > availW;
+    var timeColW = compact ? 28 : normalTimeColW;
+    var colW = compact ? Math.max(28, Math.floor((availW - timeColW) / N)) : normalColW;
+    var colTemplate = timeColW + 'px repeat(' + N + ', minmax(' + colW + 'px, 1fr))';
+
+    headerRow.classList.toggle('compact', compact);
+    headerRow.style.display = 'grid';
+    headerRow.style.gridTemplateColumns = colTemplate;
+    headerRow.style.gridTemplateRows = '38px 44px';
+
+    var corner = document.createElement('div');
+    corner.className = 'cal-corner';
+    corner.style.gridColumn = '1'; corner.style.gridRow = '1 / 3';
+    headerRow.appendChild(corner);
+
+    var info = dayInfo(day);
+    var title = document.createElement('div');
+    title.className = 'day-title-cell' + (info.isToday ? ' is-today' : '');
+    title.style.gridColumn = '2 / ' + (2+N);
+    title.style.gridRow = '1';
+    title.innerHTML =
+      (info.isToday ? '' : '<button class="day-nav-btn day-nav-today" id="btn-today" type="button">Hoy</button>') +
+      '<button class="day-nav-btn day-nav-arrow" id="btn-prev" type="button" aria-label="Día anterior">‹</button>' +
+      '<span class="dtc-date-group">' +
+        '<span class="dtc-name">'+info.weekday+'</span>' +
+        '<span class="dtc-num">'+info.dnum+'</span>' +
+        '<span class="dtc-month">de '+info.month+'</span>' +
+        (info.isToday ? '<span class="dtc-today-pill">Hoy</span>' : '') +
+      '</span>' +
+      '<button class="day-nav-btn day-nav-arrow" id="btn-next" type="button" aria-label="Día siguiente">›</button>';
+    headerRow.appendChild(title);
+
+    pros.forEach(function(p, i){
+      var cell = document.createElement('div');
+      cell.className = 'pro-head-cell';
+      cell.style.gridColumn = String(2+i); cell.style.gridRow = '2';
+      cell.style.setProperty('--pc', p.color);
+      cell.title = p.name + ' — ' + p.specialty;
+      cell.innerHTML = '<span class="phc-spec">'+p.abbr+'</span><span class="phc-name">'+p.name.split(' ')[0]+'</span>';
+      headerRow.appendChild(cell);
+    });
+
+    grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = colTemplate;
+    grid.style.height = TOTAL_PX + 'px';
+
+    var timeCol = document.createElement('div');
+    timeCol.className = 'time-col' + (compact ? ' compact' : '');
+    timeCol.style.gridColumn = '1';
+    timeCol.style.height = TOTAL_PX + 'px';
+    for(var m=0; m<TOTAL_MIN; m+=30){
+      var lbl = document.createElement('div');
+      lbl.className = 'time-label';
+      lbl.style.top = (m*PX_PER_MIN) + 'px';
+      lbl.textContent = compact ? minutesToTimeShort(m) : minutesToTime(m);
+      timeCol.appendChild(lbl);
+    }
+    grid.appendChild(timeCol);
+
+    var dateStr = fmtISO(day);
+    var isToday = info.isToday;
+    pros.forEach(function(p, i){
+      var col = document.createElement('div');
+      col.className = 'day-col' + (isToday ? ' is-today' : '');
+      col.style.height = TOTAL_PX + 'px';
+      col.style.gridColumn = String(2+i);
+      col.dataset.date = dateStr;
+      col.dataset.pro = p.id;
+      col.addEventListener('click', onDayColClick);
+      grid.appendChild(col);
+    });
+    if(isToday){
+      var now = new Date();
+      var mins = (now.getHours()*60+now.getMinutes()) - START_HOUR*60;
+      if(mins>=0 && mins<=TOTAL_MIN){
+        pros.forEach(function(p, pi){
+          var col = grid.querySelector('.day-col[data-pro="'+p.id+'"]');
+          var line = document.createElement('div');
+          line.className = 'now-line' + (pi===0 ? ' has-dot' : '');
+          line.style.top = (mins*PX_PER_MIN) + 'px';
+          col.appendChild(line);
+        });
+      }
+    }
+  }
+
+  /* ================= RENDER: APPOINTMENT BLOCKS ================= */
+  function getFilteredAppointments(){
+    return state.appointments.filter(function(a){
+      var pro = PRO_MAP[a.profId];
+      if(!pro) return false;
+      // Los turnos cancelados no se muestran en la agenda del día (liberan ese
+      // horario visualmente); se conservan igual en los datos.
+      if(a.status==='cancelado') return false;
+      return true;
+    });
+  }
+
+  function layoutColumnEvents(events){
+    events = events.slice().sort(function(a,b){
+      var as=timeToMinutesFromStart(a.start), bs=timeToMinutesFromStart(b.start);
+      if(as!==bs) return as-bs;
+      return (a.duration - b.duration);
+    });
+    var clusters = [];
+    var current = [];
+    var currentEnd = -Infinity;
+    events.forEach(function(ev){
+      var s = timeToMinutesFromStart(ev.start), e = s+ev.duration;
+      ev._s = s; ev._e = e;
+      if(current.length && s >= currentEnd){
+        clusters.push(current);
+        current = [];
+        currentEnd = -Infinity;
+      }
+      current.push(ev);
+      currentEnd = Math.max(currentEnd, e);
+    });
+    if(current.length) clusters.push(current);
+
+    var mergeGroupSeq = 0;
+    clusters.forEach(function(cluster){
+      var allSameStart = cluster.length > 1 && cluster.every(function(ev){ return ev._s === cluster[0]._s; });
+      if(allSameStart){
+        // Dos (o más) turnos que empiezan exactamente a la misma hora para el
+        // mismo profesional: en vez de partir el ancho de la columna en franjas
+        // angostas, se combinan en un solo bloque que ocupa todo el ancho —
+        // los nombres se apilan uno abajo del otro dentro de ese bloque (ver
+        // buildMergedApptEl), como se ven anotados juntos en la hoja de papel.
+        var gid = mergeGroupSeq++;
+        cluster.forEach(function(ev){ ev._col = 0; ev._cols = 1; ev._mergeGroupId = gid; });
+      } else {
+        var cols = [];
+        cluster.forEach(function(ev){
+          var placed = false;
+          for(var c=0;c<cols.length;c++){
+            if(cols[c].end <= ev._s){ cols[c].end = ev._e; ev._col = c; placed = true; break; }
+          }
+          if(!placed){ ev._col = cols.length; cols.push({end: ev._e}); }
+        });
+        var totalCols = cols.length;
+        cluster.forEach(function(ev){ ev._cols = totalCols; });
+      }
+    });
+
+    // Altura visual: el bloque ocupa su franja de 30 min (APPT_H), salvo que eso
+    // invada el espacio del próximo turno que ocupe una posición horizontal
+    // solapada (evita que dos bloques se pisen cuando quedan poco tiempo
+    // separados) — ahí se lo achica lo necesario.
+    events.forEach(function(ev){
+      var aLeft = (100/ev._cols)*ev._col, aRight = aLeft + 100/ev._cols;
+      var minNextStart = TOTAL_MIN;
+      events.forEach(function(other){
+        if(other===ev || other._s <= ev._s) return;
+        var bLeft = (100/other._cols)*other._col, bRight = bLeft + 100/other._cols;
+        var overlapsH = aLeft < bRight - 0.01 && bLeft < aRight - 0.01;
+        if(overlapsH && other._s < minNextStart) minNextStart = other._s;
+      });
+      var availPx = (minNextStart - ev._s) * PX_PER_MIN - 4;
+      ev._boxH = Math.max(16, Math.min(APPT_H, availPx));
+    });
+    return events;
+  }
+
+  function renderGrid(){
+    var pros = getVisiblePros();
+    if(pros.length===0) return;
+    var grid = document.getElementById('cal-body-grid');
+    grid.querySelectorAll('.appt, .empty-hint').forEach(function(n){ n.remove(); });
+
+    var filtered = getFilteredAppointments();
+    var dateStr = fmtISO(state.viewDate);
+
+    pros.forEach(function(p){
+      var col = grid.querySelector('.day-col[data-pro="'+p.id+'"]');
+      if(!col) return;
+      var events = filtered.filter(function(a){ return a.date===dateStr && a.profId===p.id; });
+      events = layoutColumnEvents(events);
+      var renderedGroups = {};
+      events.forEach(function(ev){
+        if(ev._mergeGroupId != null){
+          if(renderedGroups[ev._mergeGroupId]) return;
+          renderedGroups[ev._mergeGroupId] = true;
+          var group = events.filter(function(e){ return e._mergeGroupId === ev._mergeGroupId; });
+          col.appendChild(buildMergedApptEl(group));
+        } else {
+          col.appendChild(buildApptEl(ev));
+        }
+      });
+    });
+
+    if(state.draft && state.draft.profId && state.draft.date===dateStr){
+      var draftCol = grid.querySelector('.day-col[data-pro="'+state.draft.profId+'"]');
+      if(draftCol){
+        var hint = document.createElement('div');
+        hint.className = 'empty-hint';
+        var s = timeToMinutesFromStart(state.draft.start);
+        var sameDayEvents = filtered.filter(function(a){ return a.date===dateStr && a.profId===state.draft.profId; });
+        var nextStart = TOTAL_MIN;
+        sameDayEvents.forEach(function(a){
+          var as = timeToMinutesFromStart(a.start);
+          if(as > s && as < nextStart) nextStart = as;
+        });
+        var hintH = Math.max(16, Math.min(APPT_H, (nextStart - s)*PX_PER_MIN - 4));
+        hint.style.top = (s*PX_PER_MIN)+'px';
+        hint.style.height = hintH+'px';
+        draftCol.appendChild(hint);
+      }
+    }
+  }
+
+  function renderCalendar(){
+    mobileLayout = window.innerWidth <= MOBILE_BREAKPOINT;
+    if(mobileLayout){ renderSkeletonTransposed(); renderGridTransposed(); }
+    else { renderSkeleton(); renderGrid(); }
+  }
+
+  // Repinta solo los turnos (sin reconstruir el esqueleto de la agenda), en el
+  // diseño que esté activo en este momento — se usa después de crear/editar/
+  // eliminar un turno, o al abrir/cerrar el panel, para no perder la posición
+  // del scroll ni recalcular todo el layout.
+  function renderGridAuto(){
+    if(mobileLayout) renderGridTransposed(); else renderGrid();
+  }
+
+  /* ================= RENDER (CELULAR): profesionales en filas, horario en horizontal =================
+     En columnas angostas (10 profesionales en una pantalla de celular) el nombre del
+     paciente terminaba cortado incluso abreviado. Acá se invierte el esquema: cada
+     profesional es una fila ancha con su nombre completo siempre visible a la
+     izquierda (fija), y el horario del día corre en horizontal con scroll dentro de
+     esa fila — el ancho de cada turno lo da su duración, no el espacio repartido
+     entre 10 columnas, así que los nombres tienen mucho más lugar para mostrarse
+     completos. La franja de horario (arriba) y las filas comparten el mismo scroll
+     horizontal, quedando "pegadas" con position:sticky. */
+  function renderSkeletonTransposed(){
+    var headerRow = document.getElementById('cal-header-row');
+    var grid = document.getElementById('cal-body-grid');
+    var scroll = document.getElementById('cal-scroll');
+    var day = state.viewDate;
+    var pros = getVisiblePros();
+    var N = pros.length;
+
+    headerRow.innerHTML = '';
+    grid.innerHTML = '';
+    grid.className = 'cal-body-grid tr-grid';
+    scroll.classList.add('tr-mode');
+
+    headerRow.style.display = 'block';
+    headerRow.style.removeProperty('grid-template-columns');
+    headerRow.style.removeProperty('grid-template-rows');
+    headerRow.classList.remove('compact');
+
+    if(N===0){
+      grid.className = 'cal-body-grid';
+      grid.style.display = 'block';
+      grid.style.height = 'auto';
+      grid.innerHTML = '<div class="empty-cal-msg">No hay profesionales visibles.</div>';
+      return;
+    }
+
+    var info = dayInfo(day);
+    var title = document.createElement('div');
+    title.className = 'day-title-cell tr-title-cell' + (info.isToday ? ' is-today' : '');
+    title.innerHTML =
+      (info.isToday ? '' : '<button class="day-nav-btn day-nav-today" id="btn-today" type="button">Hoy</button>') +
+      '<button class="day-nav-btn day-nav-arrow" id="btn-prev" type="button" aria-label="Día anterior">‹</button>' +
+      '<span class="dtc-date-group">' +
+        '<span class="dtc-name">'+info.weekday+'</span>' +
+        '<span class="dtc-num">'+info.dnum+'</span>' +
+        '<span class="dtc-month">de '+info.month+'</span>' +
+        (info.isToday ? '<span class="dtc-today-pill">Hoy</span>' : '') +
+      '</span>' +
+      '<button class="day-nav-btn day-nav-arrow" id="btn-next" type="button" aria-label="Día siguiente">›</button>';
+    headerRow.appendChild(title);
+
+    grid.style.display = '';
+    grid.style.height = '';
+    grid.style.setProperty('--tr-name-w', TR_NAME_W+'px');
+
+    // Renglón de horario, pegado arriba (position:sticky) al scrollear verticalmente,
+    // y que se desplaza junto con las filas al scrollear horizontalmente.
+    var timeHeader = document.createElement('div');
+    timeHeader.className = 'tr-time-header';
+    var corner = document.createElement('div');
+    corner.className = 'tr-corner';
+    timeHeader.appendChild(corner);
+    var timeTrack = document.createElement('div');
+    timeTrack.className = 'tr-time-track';
+    timeTrack.style.width = TOTAL_PX+'px';
+    for(var m=0; m<=TOTAL_MIN; m+=60){
+      var lbl = document.createElement('div');
+      lbl.className = 'tr-time-label';
+      lbl.style.left = (m*PX_PER_MIN)+'px';
+      lbl.textContent = minutesToTimeShort(m);
+      timeTrack.appendChild(lbl);
+    }
+    timeHeader.appendChild(timeTrack);
+    grid.appendChild(timeHeader);
+
+    var dateStr = fmtISO(day);
+    var isToday = info.isToday;
+    pros.forEach(function(p){
+      var row = document.createElement('div');
+      row.className = 'tr-row' + (isToday ? ' is-today' : '');
+      row.style.setProperty('--pc', p.color);
+      row.dataset.pro = p.id;
+
+      var nameCell = document.createElement('div');
+      nameCell.className = 'tr-row-name';
+      nameCell.style.setProperty('--pc', p.color);
+      nameCell.title = p.name + ' — ' + p.specialty;
+      nameCell.innerHTML = '<span class="tr-row-spec">'+p.abbr+'</span><span class="tr-row-person">'+p.name+'</span>';
+      row.appendChild(nameCell);
+
+      var track = document.createElement('div');
+      track.className = 'tr-row-track';
+      track.style.width = TOTAL_PX+'px';
+      track.dataset.date = dateStr;
+      track.dataset.pro = p.id;
+      track.addEventListener('click', onTrTrackClick);
+      row.appendChild(track);
+
+      if(isToday){
+        var now = new Date();
+        var mins = (now.getHours()*60+now.getMinutes()) - START_HOUR*60;
+        if(mins>=0 && mins<=TOTAL_MIN){
+          var line = document.createElement('div');
+          line.className = 'tr-now-line has-dot';
+          line.style.left = (mins*PX_PER_MIN)+'px';
+          track.appendChild(line);
+        }
+      }
+
+      grid.appendChild(row);
+    });
+  }
+
+  function renderGridTransposed(){
+    var pros = getVisiblePros();
+    if(pros.length===0) return;
+    var grid = document.getElementById('cal-body-grid');
+    var filtered = getFilteredAppointments();
+    var dateStr = fmtISO(state.viewDate);
+
+    pros.forEach(function(p){
+      var row = grid.querySelector('.tr-row[data-pro="'+p.id+'"]');
+      if(!row) return;
+      var track = row.querySelector('.tr-row-track');
+      track.querySelectorAll('.appt, .empty-hint').forEach(function(n){ n.remove(); });
+
+      var events = filtered.filter(function(a){ return a.date===dateStr && a.profId===p.id; });
+      events = layoutColumnEvents(events);
+      var maxLanes = 1;
+      events.forEach(function(ev){ if(ev._cols > maxLanes) maxLanes = ev._cols; });
+      var rowH = maxLanes * TR_LANE_H;
+      row.style.height = rowH+'px';
+      track.style.height = rowH+'px';
+
+      var renderedGroups = {};
+      events.forEach(function(ev){
+        var laneTop = ev._col * TR_LANE_H;
+        if(ev._mergeGroupId != null){
+          if(renderedGroups[ev._mergeGroupId]) return;
+          renderedGroups[ev._mergeGroupId] = true;
+          var group = events.filter(function(e){ return e._mergeGroupId === ev._mergeGroupId; });
+          track.appendChild(buildMergedApptElTransposed(group, laneTop, TR_LANE_H));
+        } else {
+          track.appendChild(buildApptElTransposed(ev, laneTop, TR_LANE_H));
+        }
+      });
+    });
+
+    if(state.draft && state.draft.profId && state.draft.date===dateStr){
+      var draftRow = grid.querySelector('.tr-row[data-pro="'+state.draft.profId+'"]');
+      if(draftRow){
+        var draftTrack = draftRow.querySelector('.tr-row-track');
+        var hint = document.createElement('div');
+        hint.className = 'empty-hint';
+        var s = timeToMinutesFromStart(state.draft.start);
+        hint.style.left = (s*PX_PER_MIN)+'px';
+        hint.style.width = Math.max(16, (state.draft.duration||30)*PX_PER_MIN - 4)+'px';
+        hint.style.top = '2px';
+        hint.style.height = (TR_LANE_H-4)+'px';
+        draftTrack.appendChild(hint);
+      }
+    }
+  }
+
+  function buildApptElTransposed(ev, laneTop, laneH){
+    var pro = PRO_MAP[ev.profId];
+    var el = document.createElement('div');
+    el.className = 'appt state-'+ev.status + (dragState.id===ev.id ? ' dragging':'');
+    el.style.setProperty('--pc', pro.color);
+    el.style.left = (ev._s*PX_PER_MIN)+'px';
+    el.style.width = Math.max(16, ev.duration*PX_PER_MIN - 4)+'px';
+    el.style.top = (laneTop+2)+'px';
+    el.style.height = (laneH-4)+'px';
+    el.dataset.id = ev.id;
+
+    var endMin = ev._s + ev.duration;
+    var endTime = minutesToTime(endMin);
+    var statusInfo = STATUS_DEFS[ev.status];
+    el.title = ev.patient + ' — ' + ev.start + '–' + endTime + ' (' + ev.duration + ' min) — ' + statusInfo.label + (ev.notes ? ' — ' + ev.notes : '');
+
+    el.innerHTML =
+      '<span class="appt-patient">'+escapeHtml(ev.patient)+'</span>' +
+      '<div class="quick-actions">' +
+        '<button class="qa-btn yes" data-act="asistio" title="Marcar Asistió">✓</button>' +
+        '<button class="qa-btn no" data-act="no_asistio" title="Marcar No asistió">✕</button>' +
+      '</div>';
+
+    el.querySelectorAll('.qa-btn').forEach(function(btn){
+      btn.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var appt = findAppt(ev.id);
+        if(appt){ appt.status = btn.dataset.act; save(); renderGridTransposed(); showToast(ev.patient + ': ' + STATUS_DEFS[btn.dataset.act].label); }
+      });
+    });
+
+    el.addEventListener('pointerdown', function(e){
+      if(e.target.closest('.qa-btn')) return;
+      if(e.button!==undefined && e.button!==0) return;
+      e.preventDefault();
+      startMove(ev.id, e.clientX, e.clientY, el, e.pointerId);
+    });
+
+    el.addEventListener('click', function(e){
+      if(moveState.didDrag) { moveState.didDrag = false; return; }
+      openEditPanel(ev.id);
+    });
+
+    return el;
+  }
+
+  function buildMergedApptElTransposed(group, laneTop, laneH){
+    var pro = PRO_MAP[group[0].profId];
+    var el = document.createElement('div');
+    el.className = 'appt appt-merged';
+    el.style.setProperty('--pc', pro.color);
+    el.style.left = (group[0]._s*PX_PER_MIN)+'px';
+    el.style.width = Math.max(16, group[0].duration*PX_PER_MIN - 4)+'px';
+    el.style.top = (laneTop+2)+'px';
+    el.style.height = (laneH-4)+'px';
+
+    group.forEach(function(ev){
+      var endMin = ev._s + ev.duration;
+      var endTime = minutesToTime(endMin);
+      var statusInfo = STATUS_DEFS[ev.status];
+
+      var row = document.createElement('div');
+      row.className = 'appt-merge-row state-'+ev.status + (dragState.id===ev.id ? ' dragging' : '');
+      row.dataset.id = ev.id;
+      row.title = ev.patient + ' — ' + ev.start + '–' + endTime + ' (' + ev.duration + ' min) — ' + statusInfo.label + (ev.notes ? ' — ' + ev.notes : '');
+      row.innerHTML = '<span class="appt-patient">'+escapeHtml(ev.patient)+'</span>';
+
+      row.addEventListener('pointerdown', function(e){
+        if(e.button!==undefined && e.button!==0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        startMove(ev.id, e.clientX, e.clientY, row, e.pointerId);
+      });
+      row.addEventListener('click', function(e){
+        e.stopPropagation();
+        if(moveState.didDrag){ moveState.didDrag = false; return; }
+        openEditPanel(ev.id);
+      });
+
+      el.appendChild(row);
+    });
+
+    return el;
+  }
+
+  function onTrTrackClick(e){
+    if(e.target !== e.currentTarget) return;
+    var track = e.currentTarget;
+    var rect = track.getBoundingClientRect();
+    var x = e.clientX - rect.left + track.scrollLeft;
+    var mins = clamp(Math.round((x / PX_PER_MIN) / 30) * 30, 0, TOTAL_MIN - 30);
+    openCreatePanel(track.dataset.date, minutesToTime(mins), track.dataset.pro);
+  }
+
+  function buildApptEl(ev){
+    var pro = PRO_MAP[ev.profId];
+    var el = document.createElement('div');
+    el.className = 'appt state-'+ev.status + (dragState.id===ev.id ? ' dragging':'');
+    el.style.setProperty('--pc', pro.color);
+    var top = ev._s * PX_PER_MIN;
+    var height = ev._boxH || APPT_H;
+    el.style.top = top+'px';
+    el.style.height = height+'px';
+    var widthPct = 100/ev._cols;
+    el.style.width = 'calc(' + widthPct + '% - 4px)';
+    el.style.left = 'calc(' + (widthPct*ev._col) + '% + 2px)';
+    el.dataset.id = ev.id;
+
+    var endMin = ev._s + ev.duration;
+    var endTime = minutesToTime(endMin);
+    var statusInfo = STATUS_DEFS[ev.status];
+
+    // El horario y la duración no se muestran de forma fija en el bloque (para que
+    // los bloques sean angostos y entren muchos profesionales juntos, como en la
+    // hoja de papel); quedan disponibles al pasar el cursor (tooltip nativo del
+    // navegador) o al tocar el turno, que abre el panel con el horario completo.
+    el.title = ev.patient + ' — ' + ev.start + '–' + endTime + ' (' + ev.duration + ' min) — ' + statusInfo.label + (ev.notes ? ' — ' + ev.notes : '');
+
+    el.innerHTML =
+      '<span class="appt-patient">'+escapeHtml(ev.patient)+'</span>' +
+      '<div class="quick-actions">' +
+        '<button class="qa-btn yes" data-act="asistio" title="Marcar Asistió">✓</button>' +
+        '<button class="qa-btn no" data-act="no_asistio" title="Marcar No asistió">✕</button>' +
+      '</div>';
+
+    el.querySelectorAll('.qa-btn').forEach(function(btn){
+      btn.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var appt = findAppt(ev.id);
+        if(appt){ appt.status = btn.dataset.act; save(); renderGrid(); showToast(ev.patient + ': ' + STATUS_DEFS[btn.dataset.act].label); }
+      });
+    });
+
+    el.addEventListener('pointerdown', function(e){
+      if(e.target.closest('.qa-btn')) return;
+      if(e.button!==undefined && e.button!==0) return;
+      e.preventDefault();
+      startMove(ev.id, e.clientX, e.clientY, el, e.pointerId);
+    });
+
+    el.addEventListener('click', function(e){
+      if(moveState.didDrag) { moveState.didDrag = false; return; }
+      openEditPanel(ev.id);
+    });
+
+    return el;
+  }
+
+  // Dos (o más) turnos del mismo profesional que empiezan a la misma hora: un solo
+  // bloque de ancho completo, con los nombres apilados uno abajo del otro y
+  // separados por una línea — igual que se ven anotados juntos en la hoja de papel
+  // (ej. "ELBA / FABIÁN" a las 14hs), en vez de partir el ancho en franjas angostas.
+  function buildMergedApptEl(group){
+    var pro = PRO_MAP[group[0].profId];
+    var el = document.createElement('div');
+    el.className = 'appt appt-merged';
+    el.style.setProperty('--pc', pro.color);
+    var top = group[0]._s * PX_PER_MIN;
+    var height = group[0]._boxH || APPT_H;
+    el.style.top = top+'px';
+    el.style.height = height+'px';
+    el.style.width = 'calc(100% - 4px)';
+    el.style.left = '2px';
+
+    group.forEach(function(ev){
+      var endMin = ev._s + ev.duration;
+      var endTime = minutesToTime(endMin);
+      var statusInfo = STATUS_DEFS[ev.status];
+
+      var row = document.createElement('div');
+      row.className = 'appt-merge-row state-'+ev.status + (dragState.id===ev.id ? ' dragging' : '');
+      row.dataset.id = ev.id;
+      row.title = ev.patient + ' — ' + ev.start + '–' + endTime + ' (' + ev.duration + ' min) — ' + statusInfo.label + (ev.notes ? ' — ' + ev.notes : '');
+      row.innerHTML = '<span class="appt-patient">'+escapeHtml(ev.patient)+'</span>';
+
+      row.addEventListener('pointerdown', function(e){
+        if(e.button!==undefined && e.button!==0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        startMove(ev.id, e.clientX, e.clientY, row, e.pointerId);
+      });
+      row.addEventListener('click', function(e){
+        e.stopPropagation();
+        if(moveState.didDrag){ moveState.didDrag = false; return; }
+        openEditPanel(ev.id);
+      });
+
+      el.appendChild(row);
+    });
+
+    return el;
+  }
+
+  function findAppt(id){
+    for(var i=0;i<state.appointments.length;i++) if(state.appointments[i].id===id) return state.appointments[i];
+    return null;
+  }
+
+  function escapeHtml(s){
+    var d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+  }
+
+  function renderAll(){
+    renderCalendar();
+  }
+
+  /* ================= EMPTY CELL CLICK -> CREATE ================= */
+  function onDayColClick(e){
+    if(e.target !== e.currentTarget) return;
+    var col = e.currentTarget;
+    var rect = col.getBoundingClientRect();
+    var y = e.clientY - rect.top + col.scrollTop;
+    var mins = clamp(Math.round((y / PX_PER_MIN) / 30) * 30, 0, TOTAL_MIN - 30);
+    openCreatePanel(col.dataset.date, minutesToTime(mins), col.dataset.pro);
+  }
+
+  /* ================= DRAG (MOVE) — pointer events for mouse + touch ================= */
+  var moveState = { active:false, id:null, axis:'v', grabOffsetMin:0, startX:0, startY:0, didDrag:false, moved:false, pointerId:null };
+  var dragState = { id:null };
+  var rafPending = false;
+
+  function startMove(id, clientX, clientY, el, pointerId){
+    var appt = findAppt(id);
+    if(!appt) return;
+    var rect = el.getBoundingClientRect();
+    moveState.active = true;
+    moveState.id = id;
+    moveState.pointerId = pointerId;
+    // En el diseño normal (compu / columnas por profesional) se arrastra en
+    // vertical (el horario corre en filas); en el diseño transpuesto (celular /
+    // filas por profesional) se arrastra en horizontal (el horario corre en
+    // columnas dentro de la fila). Se fija el eje al agarrar el turno, para que
+    // no cambie a mitad de un arrastre si la pantalla se redimensiona.
+    moveState.axis = mobileLayout ? 'h' : 'v';
+    moveState.grabOffsetMin = (moveState.axis==='h' ? (clientX - rect.left) : (clientY - rect.top)) / PX_PER_MIN;
+    moveState.startX = clientX;
+    moveState.startY = clientY;
+    moveState.moved = false;
+    moveState.didDrag = false;
+    document.addEventListener('pointermove', onMoveDrag);
+    document.addEventListener('pointerup', onMoveEnd);
+    document.addEventListener('pointercancel', onMoveEnd);
+  }
+
+  function onMoveDrag(e){
+    if(!moveState.active) return;
+    var dx = e.clientX - moveState.startX, dy = e.clientY - moveState.startY;
+    if(!moveState.moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)){
+      moveState.moved = true;
+      dragState.id = moveState.id;
+    }
+    if(!moveState.moved) return;
+    moveState.didDrag = true;
+
+    var appt = findAppt(moveState.id);
+    if(!appt) return;
+
+    if(moveState.axis === 'h'){
+      var tracks = Array.prototype.slice.call(document.querySelectorAll('.tr-row-track'));
+      var targetTrack = null;
+      for(var i=0;i<tracks.length;i++){
+        var rt = tracks[i].getBoundingClientRect();
+        if(e.clientY >= rt.top && e.clientY < rt.bottom){ targetTrack = tracks[i]; break; }
+      }
+      if(!targetTrack) return;
+      var rt2 = targetTrack.getBoundingClientRect();
+      var xWithin = e.clientX - rt2.left - moveState.grabOffsetMin*PX_PER_MIN;
+      var minsH = Math.round((xWithin / PX_PER_MIN) / 30) * 30;
+      minsH = clamp(minsH, 0, TOTAL_MIN - appt.duration);
+
+      appt.date = targetTrack.dataset.date;
+      appt.profId = targetTrack.dataset.pro;
+      appt.start = minutesToTime(minsH);
+
+      if(!rafPending){
+        rafPending = true;
+        requestAnimationFrame(function(){ rafPending=false; renderGridTransposed(); });
+      }
+      return;
+    }
+
+    var cols = Array.prototype.slice.call(document.querySelectorAll('.day-col'));
+    var targetCol = null;
+    for(var j=0;j<cols.length;j++){
+      var r = cols[j].getBoundingClientRect();
+      if(e.clientX >= r.left && e.clientX < r.right){ targetCol = cols[j]; break; }
+    }
+    if(!targetCol) return;
+    var r2 = targetCol.getBoundingClientRect();
+    var yWithin = e.clientY - r2.top - moveState.grabOffsetMin*PX_PER_MIN;
+    var mins = Math.round((yWithin / PX_PER_MIN) / 30) * 30;
+    mins = clamp(mins, 0, TOTAL_MIN - appt.duration);
+
+    appt.date = targetCol.dataset.date;
+    appt.profId = targetCol.dataset.pro;
+    appt.start = minutesToTime(mins);
+
+    if(!rafPending){
+      rafPending = true;
+      requestAnimationFrame(function(){ rafPending=false; renderGrid(); });
+    }
+  }
+
+  function onMoveEnd(){
+    document.removeEventListener('pointermove', onMoveDrag);
+    document.removeEventListener('pointerup', onMoveEnd);
+    document.removeEventListener('pointercancel', onMoveEnd);
+    var wasMoved = moveState.moved;
+    var axis = moveState.axis;
+    if(wasMoved){ save(); showToast('Turno reprogramado'); }
+    moveState.active = false;
+    dragState.id = null;
+    if(wasMoved){ if(axis==='h') renderGridTransposed(); else renderGrid(); }
+    setTimeout(function(){ moveState.didDrag = false; }, 0);
+  }
+
+  /* ================= PANEL (CREATE / EDIT) ================= */
+  var panel = document.getElementById('panel');
+  var backdrop = document.getElementById('backdrop');
+
+  function populateProSelect(){
+    var sel = document.getElementById('f-pro');
+    sel.innerHTML = '<option value="">Seleccionar…</option>' + PROFESSIONALS.map(function(p){
+      return '<option value="'+p.id+'">'+p.name+' — '+p.specialty+'</option>';
+    }).join('');
+  }
+  function populatePatientList(){
+    var names = unique(state.patients.concat(state.appointments.map(function(a){return a.patient;}))).filter(Boolean);
+    document.getElementById('patients-list').innerHTML = names.map(function(n){ return '<option value="'+escapeHtml(n)+'">'; }).join('');
+  }
+  function populateQuickStatus(current){
+    var wrap = document.getElementById('quick-status-row');
+    wrap.innerHTML = '';
+    Object.keys(STATUS_DEFS).forEach(function(k){
+      var btn = document.createElement('button');
+      btn.type='button';
+      btn.className = 'qs-btn' + (current===k ? ' active':'');
+      btn.textContent = STATUS_DEFS[k].icon + ' ' + STATUS_DEFS[k].label;
+      btn.addEventListener('click', function(){
+        document.getElementById('f-status').value = k;
+        populateQuickStatus(k);
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  function openCreatePanel(date, start, profId){
+    state.creating = true;
+    state.editingId = null;
+    document.getElementById('panel-title').textContent = 'Nuevo turno';
+    document.getElementById('btn-delete').style.display = 'none';
+    populateProSelect(); populatePatientList();
+    document.getElementById('f-patient').value = '';
+    document.getElementById('f-pro').value = profId || '';
+    document.getElementById('f-spec-hint').textContent = (profId && PRO_MAP[profId]) ? PRO_MAP[profId].specialty : '';
+    document.getElementById('f-date').value = date;
+    document.getElementById('f-time').value = start;
+    document.getElementById('f-dur').value = '60';
+    document.getElementById('f-status').value = 'pendiente';
+    document.getElementById('f-notes').value = '';
+    populateQuickStatus('pendiente');
+    state.draft = {date:date, start:start, duration:60, profId: profId || ''};
+    renderGridAuto();
+    openPanel();
+  }
+
+  function openEditPanel(id){
+    var appt = findAppt(id);
+    if(!appt) return;
+    state.creating = false;
+    state.editingId = id;
+    document.getElementById('panel-title').textContent = 'Editar turno';
+    document.getElementById('btn-delete').style.display = '';
+    populateProSelect(); populatePatientList();
+    document.getElementById('f-patient').value = appt.patient;
+    document.getElementById('f-pro').value = appt.profId;
+    document.getElementById('f-spec-hint').textContent = PRO_MAP[appt.profId] ? PRO_MAP[appt.profId].specialty : '';
+    document.getElementById('f-date').value = appt.date;
+    document.getElementById('f-time').value = appt.start;
+    document.getElementById('f-dur').value = String(appt.duration);
+    document.getElementById('f-status').value = appt.status;
+    document.getElementById('f-notes').value = appt.notes || '';
+    populateQuickStatus(appt.status);
+    state.draft = null;
+    openPanel();
+  }
+
+  function openPanel(){
+    panel.classList.add('open');
+    backdrop.classList.add('open');
+    setTimeout(function(){ document.getElementById('f-patient').focus(); }, 200);
+  }
+  function closePanel(){
+    panel.classList.remove('open');
+    backdrop.classList.remove('open');
+    state.draft = null;
+    state.editingId = null;
+    state.creating = false;
+    renderGridAuto();
+  }
+
+  document.getElementById('f-pro').addEventListener('change', function(){
+    var p = PRO_MAP[this.value];
+    document.getElementById('f-spec-hint').textContent = p ? p.specialty : '';
+    if(state.creating && state.draft){
+      state.draft.profId = this.value;
+      renderGridAuto();
+    }
+  });
+
+  function savePanel(){
+    var patient = document.getElementById('f-patient').value.trim();
+    var profId = document.getElementById('f-pro').value;
+    var date = document.getElementById('f-date').value;
+    var start = document.getElementById('f-time').value;
+    var duration = parseInt(document.getElementById('f-dur').value, 10);
+    var status = document.getElementById('f-status').value;
+    var notes = document.getElementById('f-notes').value.trim();
+
+    if(!patient){ alert('Ingresá el nombre del paciente.'); return; }
+    if(!profId){ alert('Seleccioná un profesional.'); return; }
+    if(!date || !start){ alert('Completá el día y el horario.'); return; }
+
+    if(state.patients.indexOf(patient)===-1) state.patients.push(patient);
+
+    if(state.creating){
+      state.appointments.push({
+        id: 'a'+Date.now()+Math.floor(Math.random()*1000),
+        date: date, start: start, duration: duration,
+        profId: profId, patient: patient, status: status, notes: notes
+      });
+      showToast('Turno creado');
+    } else {
+      var appt = findAppt(state.editingId);
+      if(appt){
+        appt.date=date; appt.start=start; appt.duration=duration;
+        appt.profId=profId; appt.patient=patient; appt.status=status; appt.notes=notes;
+        showToast('Turno actualizado');
+      }
+    }
+    save();
+    closePanel();
+    renderGridAuto();
+  }
+
+  function deletePanel(){
+    if(!state.editingId) return;
+    if(!confirm('¿Eliminar este turno? Esta acción no se puede deshacer.')) return;
+    state.appointments = state.appointments.filter(function(a){ return a.id!==state.editingId; });
+    save();
+    showToast('Turno eliminado');
+    closePanel();
+    renderGridAuto();
+  }
+
+  /* ================= TOAST ================= */
+  var toastTimer = null;
+  function showToast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  /* ================= NAV =================
+     Los botones Hoy/‹/› viven dentro del encabezado del calendario, que se
+     reconstruye en cada render (renderSkeleton) — por eso se usa delegación
+     de eventos sobre el contenedor fijo en vez de addEventListener directo. */
+  document.getElementById('cal-header-row').addEventListener('click', function(e){
+    if(e.target.closest('#btn-today')){
+      state.viewDate = defaultViewDate();
+      renderCalendar();
+    } else if(e.target.closest('#btn-prev')){
+      state.viewDate = prevValidDay(state.viewDate);
+      renderCalendar();
+    } else if(e.target.closest('#btn-next')){
+      state.viewDate = nextValidDay(state.viewDate);
+      renderCalendar();
+    }
+  });
+  document.getElementById('btn-new').addEventListener('click', function(){
+    openCreatePanel(fmtISO(state.viewDate), '09:00', '');
+  });
+  document.getElementById('btn-reset-demo').addEventListener('click', resetDemo);
+
+  document.getElementById('panel-close').addEventListener('click', closePanel);
+  document.getElementById('backdrop').addEventListener('click', closePanel);
+  document.getElementById('btn-save').addEventListener('click', savePanel);
+  document.getElementById('btn-delete').addEventListener('click', deletePanel);
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape' && panel.classList.contains('open')) closePanel();
+  });
+
+  // Si se gira el celular o se cambia el tamaño de la ventana cruzando el umbral
+  // de diseño móvil (MOBILE_BREAKPOINT), hay que volver a armar la agenda desde
+  // cero (los diseños normal y transpuesto usan estructuras de DOM distintas).
+  var resizeRerenderTimer = null;
+  window.addEventListener('resize', function(){
+    clearTimeout(resizeRerenderTimer);
+    resizeRerenderTimer = setTimeout(function(){
+      if((window.innerWidth <= MOBILE_BREAKPOINT) !== mobileLayout) renderCalendar();
+    }, 150);
+  });
+
+  /* ================= INIT ================= */
+  loadOrSeed();
+  renderAll();
+
+})();
+</script>
+</body>
+</html>
