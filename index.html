@@ -477,7 +477,7 @@
       <div class="inline-actions"><button class="btn-mini" id="btn-new-insurance" type="button">+ Obra social nueva</button></div>
     </div>
 
-    <label class="check-line"><input type="checkbox" id="f-is-to" /> Paciente con condición TO</label>
+    <label class="check-line"><input type="checkbox" id="f-is-to" /> Paciente de TO</label>
     <div id="additional-patients"></div>
 
     <div class="field">
@@ -1655,13 +1655,24 @@
     var wrap=document.createElement('div'); wrap.className='patient-extra';
     wrap.innerHTML='<div class="patient-extra-head"><span>Paciente adicional</span><button type="button" class="btn-mini extra-remove">Quitar</button></div>'+
       '<div class="patient-extra-grid"><div class="field"><label>Paciente</label><input class="extra-name" list="patients-list" placeholder="Buscar o escribir…"></div>'+
-      '<div class="field"><label>Obra social</label><select class="extra-insurance"></select></div></div>'+
-      '<label class="check-line"><input type="checkbox" class="extra-to"> Paciente con condición TO</label>';
+      '<div class="field"><label>Obra social</label><select class="extra-insurance"></select><button type="button" class="btn-mini extra-new-insurance">+ Obra social nueva</button></div></div>'+
+      '<label class="check-line"><input type="checkbox" class="extra-to"> Paciente de TO</label>';
     wrap.querySelector('.extra-name').value=data.patient||'';
     populateInsuranceSelect(wrap.querySelector('.extra-insurance'),data.insurance||document.getElementById('f-insurance').value);
     wrap.querySelector('.extra-to').checked=!!data.isTO;
     wrap.querySelector('.extra-remove').addEventListener('click',function(){ wrap.remove(); });
+    wrap.querySelector('.extra-new-insurance').addEventListener('click',function(){ addNewInsurance(wrap.querySelector('.extra-insurance')); });
     document.getElementById('additional-patients').appendChild(wrap);
+  }
+  function addNewInsurance(targetSelect){
+    var name=prompt('Nombre de la obra social nueva:');
+    if(!name || !name.trim()) return;
+    name=name.trim();
+    if(state.insurances.indexOf(name)===-1){ rememberForUndo('agregar obra social'); state.insurances.push(name); save(); }
+    populateInsuranceSelect(document.getElementById('f-insurance'),document.getElementById('f-insurance').value);
+    document.querySelectorAll('.extra-insurance').forEach(function(sel){ var selected=sel===targetSelect ? name : sel.value; populateInsuranceSelect(sel,selected); });
+    if(targetSelect) targetSelect.value=name;
+    showToast('Obra social agregada');
   }
   function patientEntries(){
     var entries=[{patient:document.getElementById('f-patient').value.trim(),insurance:document.getElementById('f-insurance').value,isTO:document.getElementById('f-is-to').checked}];
@@ -1877,15 +1888,7 @@
     if(state.patients.indexOf(name)===-1){ rememberForUndo('agregar paciente'); state.patients.push(name); save(); }
     populatePatientList(); document.getElementById('f-patient').value=name; showToast('Paciente disponible para asignar');
   });
-  document.getElementById('btn-new-insurance').addEventListener('click', function(){
-    var name=prompt('Nombre de la obra social nueva:');
-    if(!name || !name.trim()) return;
-    name=name.trim();
-    if(state.insurances.indexOf(name)===-1){ rememberForUndo('agregar obra social'); state.insurances.push(name); save(); }
-    populateInsuranceSelect(document.getElementById('f-insurance'),name);
-    document.querySelectorAll('.extra-insurance').forEach(function(sel){ var old=sel.value; populateInsuranceSelect(sel,old); });
-    showToast('Obra social agregada');
-  });
+  document.getElementById('btn-new-insurance').addEventListener('click', function(){ addNewInsurance(document.getElementById('f-insurance')); });
   document.addEventListener('keydown', function(e){
     if(e.key==='Escape' && panel.classList.contains('open')) closePanel();
   });
