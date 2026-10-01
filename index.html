@@ -363,6 +363,14 @@
   .field-row{ display:flex; gap:10px; }
   .field-row .field{ flex:1; min-width:0; }
   .spec-hint{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .inline-actions{ display:flex; gap:7px; flex-wrap:wrap; margin-top:3px; }
+  .btn-mini{ border:1px solid var(--border-strong); border-radius:8px; background:var(--surface-2); color:var(--ink-soft); padding:7px 9px; font-size:12px; font-weight:700; }
+  .patient-extra{ border:1px solid var(--border); border-radius:10px; padding:10px; background:var(--surface-2); display:flex; flex-direction:column; gap:8px; }
+  .patient-extra-head{ display:flex; align-items:center; justify-content:space-between; font-size:12px; font-weight:800; }
+  .patient-extra-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .check-line{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--ink-soft); }
+  .check-line input{ width:18px; height:18px; }
+  .panel-footer{ flex-wrap:wrap; }
 
   .panel-footer{ padding:14px 18px; border-top:1px solid var(--border); display:flex; gap:10px; flex-shrink:0; padding-bottom:calc(14px + env(safe-area-inset-bottom)); }
   .btn-danger{ color:var(--danger); border-color:var(--danger); background:transparent; }
@@ -413,6 +421,7 @@
       <div class="brand-sub">Agenda de turnos</div>
     </div>
     <div class="topbar-actions">
+      <button class="btn" id="btn-undo" type="button" disabled>Deshacer</button>
       <button class="btn" id="btn-density" type="button">Ampliar</button>
       <button class="btn" id="btn-excel" type="button">Excel</button>
     </div>
@@ -449,6 +458,10 @@
       <label for="f-patient">Paciente</label>
       <input id="f-patient" list="patients-list" placeholder="Buscar o escribir paciente…" autocomplete="off" />
       <datalist id="patients-list"></datalist>
+      <div class="inline-actions">
+        <button class="btn-mini" id="btn-new-patient" type="button">+ Paciente nuevo</button>
+        <button class="btn-mini" id="btn-add-patient" type="button">+ Segundo paciente</button>
+      </div>
     </div>
 
     <div class="field">
@@ -461,7 +474,11 @@
         <option value="Apross">Apross</option>
         <option value="Particular">Particular</option>
       </select>
+      <div class="inline-actions"><button class="btn-mini" id="btn-new-insurance" type="button">+ Obra social nueva</button></div>
     </div>
+
+    <label class="check-line"><input type="checkbox" id="f-is-to" /> Paciente con condición TO</label>
+    <div id="additional-patients"></div>
 
     <div class="field">
       <label for="f-pro">Profesional</label>
@@ -508,7 +525,8 @@
   </div>
   <div class="panel-footer">
     <button class="btn btn-danger" id="btn-delete">Eliminar</button>
-    <button class="btn btn-primary btn-block" id="btn-save">Guardar cambios</button>
+    <button class="btn" id="btn-copy" type="button">Copiar turno</button>
+    <button class="btn btn-primary btn-block" id="btn-save">Confirmar</button>
   </div>
 </div>
 
@@ -520,7 +538,7 @@
   "use strict";
 
   /* ================= CONFIG ================= */
-  var STORAGE_KEY = 'crn-agenda-demo-publica-v12';
+  var STORAGE_KEY = 'crn-agenda-demo-publica-v13';
   var START_HOUR = 8, END_HOUR = 20;
   var SLOT_MIN = 30, SLOT_PX = 56;
   var PX_PER_MIN = SLOT_PX / SLOT_MIN;
@@ -646,10 +664,12 @@
     viewDate: defaultViewDate(),
     appointments: [],
     patients: BASE_PATIENTS.slice(),
+    insurances: INSURANCES.slice(),
     editingId: null,
     creating: false,
     draft: null
   };
+  var undoStack = [];
   var mobileLayout = false; // true = diseño transpuesto (profesionales en filas); se decide en cada renderCalendar()
 
   /* ================= DATE HELPERS ================= */
@@ -714,7 +734,8 @@
     try{
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         appointments: state.appointments,
-        patients: state.patients
+        patients: state.patients,
+        insurances: state.insurances
       }));
     }catch(e){ /* storage unavailable — demo still works in-memory */ }
   }
@@ -729,6 +750,7 @@
           state.appointments = data.appointments;
           state.appointments.forEach(function(a){ if(!a.insurance) a.insurance = insuranceForPatient(a.patient); });
           state.patients = data.patients && data.patients.length ? data.patients : BASE_PATIENTS.slice();
+          state.insurances = data.insurances && data.insurances.length ? data.insurances : INSURANCES.slice();
           return;
         }
       }catch(e){}
@@ -742,13 +764,34 @@
     try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
     state.viewDate = defaultViewDate();
     state.patients = BASE_PATIENTS.slice();
+    state.insurances = INSURANCES.slice();
     state.appointments = generateSeed();
+    undoStack = [];
     save();
     renderAll();
     showToast('Datos de demo restablecidos');
   }
 
   function unique(arr){ return arr.filter(function(v,i){ return arr.indexOf(v)===i; }); }
+
+  function rememberForUndo(label){
+    undoStack.push({ label:label, appointments:JSON.stringify(state.appointments), patients:JSON.stringify(state.patients), insurances:JSON.stringify(state.insurances) });
+    if(undoStack.length>12) undoStack.shift();
+    updateUndoButton();
+  }
+  function updateUndoButton(){
+    var btn=document.getElementById('btn-undo');
+    btn.disabled=!undoStack.length;
+    btn.title=undoStack.length ? 'Deshacer: '+undoStack[undoStack.length-1].label : 'No hay cambios para deshacer';
+  }
+  function undoLast(){
+    var last=undoStack.pop();
+    if(!last) return;
+    state.appointments=JSON.parse(last.appointments);
+    state.patients=JSON.parse(last.patients);
+    state.insurances=JSON.parse(last.insurances);
+    save(); renderAll(); updateUndoButton(); showToast('Se deshizo: '+last.label);
+  }
 
   function getVisiblePros(){
     return PROFESSIONALS;
@@ -1029,17 +1072,17 @@
     var ordered = state.appointments.slice().sort(function(a,b){
       return (a.date+a.start+a.profId).localeCompare(b.date+b.start+b.profId);
     });
-    var rows = [['Fecha','Hora','Duración (min)','Paciente','Obra social','Profesional','Especialidad','Estado','Observaciones']];
+    var rows = [['Fecha','Hora','Duración (min)','Paciente','Obra social','TO','Profesional','Especialidad','Estado','Observaciones']];
     ordered.forEach(function(a){
       var p = PRO_MAP[a.profId] || {};
-      rows.push([a.date,a.start,a.duration,a.patient,a.insurance||insuranceForPatient(a.patient),p.name||a.profId,p.specialty||'',STATUS_DEFS[a.status] ? STATUS_DEFS[a.status].label : a.status,a.notes||'']);
+      rows.push([a.date,a.start,a.duration,a.patient,a.insurance||insuranceForPatient(a.patient),a.isTO?'Sí':'No',p.name||a.profId,p.specialty||'',STATUS_DEFS[a.status] ? STATUS_DEFS[a.status].label : a.status,a.notes||'']);
     });
 
     var patientSummary = {};
     var professionalSummary = {};
     ordered.forEach(function(a){
       var insurance = a.insurance || insuranceForPatient(a.patient);
-      if(!patientSummary[a.patient]) patientSummary[a.patient] = {insurance:insurance,total:0,visits:0,absences:0,cancelled:0};
+      if(!patientSummary[a.patient]) patientSummary[a.patient] = {insurance:insurance,isTO:!!a.isTO,total:0,visits:0,absences:0,cancelled:0};
       var ps = patientSummary[a.patient];
       ps.total++;
       if(a.status==='asistio') ps.visits++;
@@ -1056,10 +1099,10 @@
       }
     });
 
-    var patientRows = [['Paciente','Obra social','Turnos programados','Visitas realizadas','Ausencias','Cancelados']];
+    var patientRows = [['Paciente','Obra social','TO','Turnos programados','Visitas realizadas','Ausencias','Cancelados']];
     Object.keys(patientSummary).sort().forEach(function(name){
       var x = patientSummary[name];
-      patientRows.push([name,x.insurance,x.total,x.visits,x.absences,x.cancelled]);
+      patientRows.push([name,x.insurance,x.isTO?'Sí':'No',x.total,x.visits,x.absences,x.cancelled]);
     });
 
     var professionalRows = [['Profesional','Especialidad','Turnos programados','Atenciones realizadas','Horas trabajadas']];
@@ -1070,11 +1113,11 @@
 
     var sheet = XLSX.utils.aoa_to_sheet(rows);
     sheet['!cols'] = [
-      {wch:12}, {wch:8}, {wch:16}, {wch:24}, {wch:18},
+      {wch:12}, {wch:8}, {wch:16}, {wch:24}, {wch:18}, {wch:8},
       {wch:24}, {wch:22}, {wch:14}, {wch:38}
     ];
     var patientSheet = XLSX.utils.aoa_to_sheet(patientRows);
-    patientSheet['!cols'] = [{wch:26},{wch:20},{wch:19},{wch:18},{wch:12},{wch:12}];
+    patientSheet['!cols'] = [{wch:26},{wch:20},{wch:8},{wch:19},{wch:18},{wch:12},{wch:12}];
     var professionalSheet = XLSX.utils.aoa_to_sheet(professionalRows);
     professionalSheet['!cols'] = [{wch:26},{wch:24},{wch:19},{wch:21},{wch:18}];
     var workbook = XLSX.utils.book_new();
@@ -1475,7 +1518,7 @@
   }
 
   /* ================= DRAG (MOVE) — pointer events for mouse + touch ================= */
-  var moveState = { active:false, id:null, axis:'v', grabOffsetMin:0, startX:0, startY:0, didDrag:false, moved:false, pointerId:null };
+  var moveState = { active:false, id:null, axis:'v', grabOffsetMin:0, startX:0, startY:0, didDrag:false, moved:false, pointerId:null, original:null };
   var dragState = { id:null };
   var rafPending = false;
 
@@ -1485,6 +1528,7 @@
     var rect = el.getBoundingClientRect();
     moveState.active = true;
     moveState.id = id;
+    moveState.original = {date:appt.date,start:appt.start,profId:appt.profId};
     moveState.pointerId = pointerId;
     // En el diseño normal (compu / columnas por profesional) se arrastra en
     // vertical (el horario corre en filas); en el diseño transpuesto (celular /
@@ -1567,7 +1611,19 @@
     document.removeEventListener('pointercancel', onMoveEnd);
     var wasMoved = moveState.moved;
     var axis = moveState.axis;
-    if(wasMoved){ save(); showToast('Turno reprogramado'); }
+    if(wasMoved){
+      var appt=findAppt(moveState.id), ok=confirm('¿Confirmar el movimiento de este turno?');
+      if(ok){
+        var current={date:appt.date,start:appt.start,profId:appt.profId};
+        appt.date=moveState.original.date; appt.start=moveState.original.start; appt.profId=moveState.original.profId;
+        rememberForUndo('mover turno');
+        appt.date=current.date; appt.start=current.start; appt.profId=current.profId;
+        save(); showToast('Turno movido y confirmado');
+      }else{
+        appt.date=moveState.original.date; appt.start=moveState.original.start; appt.profId=moveState.original.profId;
+        showToast('Movimiento cancelado');
+      }
+    }
     moveState.active = false;
     dragState.id = null;
     if(wasMoved){ if(axis==='h') renderGridTransposed(); else renderGrid(); }
@@ -1587,6 +1643,32 @@
   function populatePatientList(){
     var names = unique(state.patients.concat(state.appointments.map(function(a){return a.patient;}))).filter(Boolean);
     document.getElementById('patients-list').innerHTML = names.map(function(n){ return '<option value="'+escapeHtml(n)+'">'; }).join('');
+  }
+  function populateInsuranceSelect(select, selected){
+    select.innerHTML=state.insurances.map(function(n){ return '<option value="'+escapeHtml(n)+'">'+escapeHtml(n)+'</option>'; }).join('');
+    if(selected && state.insurances.indexOf(selected)===-1){ state.insurances.push(selected); populateInsuranceSelect(select,selected); return; }
+    select.value=selected || state.insurances[0] || '';
+  }
+  function clearAdditionalPatients(){ document.getElementById('additional-patients').innerHTML=''; }
+  function addPatientRow(data){
+    data=data||{};
+    var wrap=document.createElement('div'); wrap.className='patient-extra';
+    wrap.innerHTML='<div class="patient-extra-head"><span>Paciente adicional</span><button type="button" class="btn-mini extra-remove">Quitar</button></div>'+
+      '<div class="patient-extra-grid"><div class="field"><label>Paciente</label><input class="extra-name" list="patients-list" placeholder="Buscar o escribir…"></div>'+
+      '<div class="field"><label>Obra social</label><select class="extra-insurance"></select></div></div>'+
+      '<label class="check-line"><input type="checkbox" class="extra-to"> Paciente con condición TO</label>';
+    wrap.querySelector('.extra-name').value=data.patient||'';
+    populateInsuranceSelect(wrap.querySelector('.extra-insurance'),data.insurance||document.getElementById('f-insurance').value);
+    wrap.querySelector('.extra-to').checked=!!data.isTO;
+    wrap.querySelector('.extra-remove').addEventListener('click',function(){ wrap.remove(); });
+    document.getElementById('additional-patients').appendChild(wrap);
+  }
+  function patientEntries(){
+    var entries=[{patient:document.getElementById('f-patient').value.trim(),insurance:document.getElementById('f-insurance').value,isTO:document.getElementById('f-is-to').checked}];
+    document.querySelectorAll('.patient-extra').forEach(function(row){
+      entries.push({patient:row.querySelector('.extra-name').value.trim(),insurance:row.querySelector('.extra-insurance').value,isTO:row.querySelector('.extra-to').checked});
+    });
+    return entries;
   }
   function populateQuickStatus(current){
     var wrap = document.getElementById('quick-status-row');
@@ -1609,9 +1691,12 @@
     state.editingId = null;
     document.getElementById('panel-title').textContent = 'Nuevo turno';
     document.getElementById('btn-delete').style.display = 'none';
+    document.getElementById('btn-copy').style.display = 'none';
     populateProSelect(); populatePatientList();
+    clearAdditionalPatients();
     document.getElementById('f-patient').value = '';
-    document.getElementById('f-insurance').value = 'PAMI';
+    populateInsuranceSelect(document.getElementById('f-insurance'),'PAMI');
+    document.getElementById('f-is-to').checked = false;
     document.getElementById('f-pro').value = profId || '';
     document.getElementById('f-spec-hint').textContent = (profId && PRO_MAP[profId]) ? PRO_MAP[profId].specialty : '';
     document.getElementById('f-date').value = date;
@@ -1630,11 +1715,14 @@
     if(!appt) return;
     state.creating = false;
     state.editingId = id;
-    document.getElementById('panel-title').textContent = 'Editar turno';
+    document.getElementById('panel-title').textContent = 'Editar / mover turno';
     document.getElementById('btn-delete').style.display = '';
+    document.getElementById('btn-copy').style.display = '';
     populateProSelect(); populatePatientList();
+    clearAdditionalPatients();
     document.getElementById('f-patient').value = appt.patient;
-    document.getElementById('f-insurance').value = appt.insurance || insuranceForPatient(appt.patient);
+    populateInsuranceSelect(document.getElementById('f-insurance'),appt.insurance || insuranceForPatient(appt.patient));
+    document.getElementById('f-is-to').checked = !!appt.isTO;
     document.getElementById('f-pro').value = appt.profId;
     document.getElementById('f-spec-hint').textContent = PRO_MAP[appt.profId] ? PRO_MAP[appt.profId].specialty : '';
     document.getElementById('f-date').value = appt.date;
@@ -1671,8 +1759,7 @@
   });
 
   function savePanel(){
-    var patient = document.getElementById('f-patient').value.trim();
-    var insurance = document.getElementById('f-insurance').value;
+    var entries = patientEntries();
     var profId = document.getElementById('f-pro').value;
     var date = document.getElementById('f-date').value;
     var start = document.getElementById('f-time').value;
@@ -1680,25 +1767,34 @@
     var status = document.getElementById('f-status').value;
     var notes = document.getElementById('f-notes').value.trim();
 
-    if(!patient){ alert('Ingresá el nombre del paciente.'); return; }
+    if(entries.some(function(x){return !x.patient;})){ alert('Ingresá el nombre de cada paciente o quitá la fila vacía.'); return; }
     if(!profId){ alert('Seleccioná un profesional.'); return; }
     if(!date || !start){ alert('Completá el día y el horario.'); return; }
 
-    if(state.patients.indexOf(patient)===-1) state.patients.push(patient);
-
     if(state.creating){
-      state.appointments.push({
-        id: 'a'+Date.now()+Math.floor(Math.random()*1000),
-        date: date, start: start, duration: duration,
-        profId: profId, patient: patient, insurance: insurance, status: status, notes: notes
+      if(!confirm('¿Confirmar la creación de '+entries.length+' turno'+(entries.length>1?'s':'')+'?')) return;
+      rememberForUndo('crear '+entries.length+' turno'+(entries.length>1?'s':''));
+      entries.forEach(function(entry,i){
+        if(state.patients.indexOf(entry.patient)===-1) state.patients.push(entry.patient);
+        state.appointments.push({
+          id: 'a'+Date.now()+i+Math.floor(Math.random()*1000),
+          date: date, start: start, duration: duration,
+          profId: profId, patient: entry.patient, insurance: entry.insurance, isTO:entry.isTO, status: status, notes: notes
+        });
       });
-      showToast('Turno creado');
+      showToast(entries.length+' turno'+(entries.length>1?'s creados':' creado'));
     } else {
       var appt = findAppt(state.editingId);
       if(appt){
+        var moved=appt.date!==date || appt.start!==start || appt.profId!==profId;
+        if(moved && !confirm('¿Confirmar el movimiento de este turno al nuevo día, hora o lugar?')) return;
+        rememberForUndo(moved?'mover turno':'editar turno');
+        entries.forEach(function(entry){ if(state.patients.indexOf(entry.patient)===-1) state.patients.push(entry.patient); });
+        var first=entries[0];
         appt.date=date; appt.start=start; appt.duration=duration;
-        appt.profId=profId; appt.patient=patient; appt.insurance=insurance; appt.status=status; appt.notes=notes;
-        showToast('Turno actualizado');
+        appt.profId=profId; appt.patient=first.patient; appt.insurance=first.insurance; appt.isTO=first.isTO; appt.status=status; appt.notes=notes;
+        entries.slice(1).forEach(function(entry,i){ state.appointments.push({id:'a'+Date.now()+i+Math.floor(Math.random()*1000),date:date,start:start,duration:duration,profId:profId,patient:entry.patient,insurance:entry.insurance,isTO:entry.isTO,status:status,notes:notes}); });
+        showToast(moved?'Turno movido y confirmado':'Turno actualizado');
       }
     }
     save();
@@ -1706,9 +1802,24 @@
     renderGridAuto();
   }
 
+  function copyPanel(){
+    if(!state.editingId) return;
+    var entries=patientEntries(), profId=document.getElementById('f-pro').value, date=document.getElementById('f-date').value, start=document.getElementById('f-time').value;
+    if(entries.some(function(x){return !x.patient;}) || !profId || !date || !start){ alert('Completá paciente, lugar, día y horario.'); return; }
+    if(!confirm('¿Confirmar la copia en '+date+' a las '+start+'? El turno original se conservará.')) return;
+    rememberForUndo('copiar turno');
+    var duration=parseInt(document.getElementById('f-dur').value,10), status=document.getElementById('f-status').value, notes=document.getElementById('f-notes').value.trim();
+    entries.forEach(function(entry,i){
+      if(state.patients.indexOf(entry.patient)===-1) state.patients.push(entry.patient);
+      state.appointments.push({id:'a'+Date.now()+i+Math.floor(Math.random()*1000),date:date,start:start,duration:duration,profId:profId,patient:entry.patient,insurance:entry.insurance,isTO:entry.isTO,status:status,notes:notes});
+    });
+    save(); closePanel(); renderGridAuto(); showToast('Turno copiado; el original se conservó');
+  }
+
   function deletePanel(){
     if(!state.editingId) return;
-    if(!confirm('¿Eliminar este turno? Esta acción no se puede deshacer.')) return;
+    if(!confirm('¿Eliminar este turno? Podrás recuperarlo con Deshacer.')) return;
+    rememberForUndo('eliminar turno');
     state.appointments = state.appointments.filter(function(a){ return a.id!==state.editingId; });
     save();
     showToast('Turno eliminado');
@@ -1751,11 +1862,30 @@
     applyDensity();
   });
   document.getElementById('btn-excel').addEventListener('click', exportExcel);
+  document.getElementById('btn-undo').addEventListener('click', undoLast);
 
   document.getElementById('panel-close').addEventListener('click', closePanel);
   document.getElementById('backdrop').addEventListener('click', closePanel);
   document.getElementById('btn-save').addEventListener('click', savePanel);
+  document.getElementById('btn-copy').addEventListener('click', copyPanel);
   document.getElementById('btn-delete').addEventListener('click', deletePanel);
+  document.getElementById('btn-add-patient').addEventListener('click', function(){ addPatientRow(); });
+  document.getElementById('btn-new-patient').addEventListener('click', function(){
+    var name=prompt('Nombre del paciente nuevo:');
+    if(!name || !name.trim()) return;
+    name=name.trim();
+    if(state.patients.indexOf(name)===-1){ rememberForUndo('agregar paciente'); state.patients.push(name); save(); }
+    populatePatientList(); document.getElementById('f-patient').value=name; showToast('Paciente disponible para asignar');
+  });
+  document.getElementById('btn-new-insurance').addEventListener('click', function(){
+    var name=prompt('Nombre de la obra social nueva:');
+    if(!name || !name.trim()) return;
+    name=name.trim();
+    if(state.insurances.indexOf(name)===-1){ rememberForUndo('agregar obra social'); state.insurances.push(name); save(); }
+    populateInsuranceSelect(document.getElementById('f-insurance'),name);
+    document.querySelectorAll('.extra-insurance').forEach(function(sel){ var old=sel.value; populateInsuranceSelect(sel,old); });
+    showToast('Obra social agregada');
+  });
   document.addEventListener('keydown', function(e){
     if(e.key==='Escape' && panel.classList.contains('open')) closePanel();
   });
@@ -1773,6 +1903,7 @@
 
   /* ================= INIT ================= */
   loadOrSeed();
+  updateUndoButton();
   renderAll();
 
 })();
