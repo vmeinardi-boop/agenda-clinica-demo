@@ -297,7 +297,7 @@
   .appt.appt-merged{ flex-direction:column; align-items:stretch; padding:0; }
   .appt-merge-row{
     flex:1; min-height:0; display:flex; align-items:center; padding:1px 4px;
-    cursor:grab; overflow:hidden; touch-action:none;
+    padding-right:70px; position:relative; cursor:grab; overflow:hidden; touch-action:none;
   }
   .appt-merge-row:not(:last-child){ border-bottom:1px solid color-mix(in srgb, var(--pc) 40%, var(--surface)); }
   .appt-merge-row .appt-patient{ -webkit-line-clamp:1; }
@@ -315,6 +315,7 @@
   }
   .qa-btn.yes:hover{ background:#3E9463; color:#fff; border-color:#3E9463; }
   .qa-btn.no:hover{ background:var(--danger); color:#fff; border-color:var(--danger); }
+  .qa-btn.copy:hover{ background:var(--accent); color:#fff; border-color:var(--accent); }
 
   .empty-hint{
     position:absolute; left:3px; right:3px; border-radius:8px; border:1.5px dashed var(--accent);
@@ -403,7 +404,8 @@
     .dtc-month{ display:none; }
     /* Narrow columns: quick-action buttons would crowd out the patient name,
        so on phones we rely on tap-to-open + the big quick-status buttons in the panel. */
-    .quick-actions{ display:none; }
+    .quick-actions{ display:flex; opacity:1; }
+    .qa-btn{ width:18px; height:18px; font-size:9px; }
     .appt{ padding:3px 5px; }
     .appt-patient{ font-size:10.5px; }
     .appt-merge-row{ padding:1px 3px; }
@@ -525,7 +527,6 @@
   </div>
   <div class="panel-footer">
     <button class="btn btn-danger" id="btn-delete">Eliminar</button>
-    <button class="btn" id="btn-copy" type="button">Copiar turno</button>
     <button class="btn btn-primary btn-block" id="btn-save">Confirmar</button>
   </div>
 </div>
@@ -670,6 +671,7 @@
     draft: null
   };
   var undoStack = [];
+  var copiedPatientName = '';
   var mobileLayout = false; // true = diseño transpuesto (profesionales en filas); se decide en cada renderCalendar()
 
   /* ================= DATE HELPERS ================= */
@@ -1320,12 +1322,14 @@
       '<div class="quick-actions">' +
         '<button class="qa-btn yes" data-act="asistio" title="Marcar Asistió">✓</button>' +
         '<button class="qa-btn no" data-act="no_asistio" title="Marcar No asistió">✕</button>' +
+        '<button class="qa-btn copy" data-act="copy" title="Copiar nombre del paciente">⧉</button>' +
       '</div>';
 
     el.querySelectorAll('.qa-btn').forEach(function(btn){
       btn.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
       btn.addEventListener('click', function(e){
         e.stopPropagation();
+        if(btn.dataset.act==='copy'){ copyPatientName(ev.patient); return; }
         var appt = findAppt(ev.id);
         if(appt){ appt.status = btn.dataset.act; save(); renderGridTransposed(); showToast(ev.patient + ': ' + STATUS_DEFS[btn.dataset.act].label); }
       });
@@ -1365,9 +1369,23 @@
       row.className = 'appt-merge-row state-'+ev.status + (dragState.id===ev.id ? ' dragging' : '');
       row.dataset.id = ev.id;
       row.title = ev.patient + ' — ' + ev.start + '–' + endTime + ' (' + ev.duration + ' min) — ' + statusInfo.label + (ev.notes ? ' — ' + ev.notes : '');
-      row.innerHTML = '<span class="appt-patient">'+escapeHtml(ev.patient)+'</span>';
+      row.innerHTML = '<span class="appt-patient">'+escapeHtml(ev.patient)+'</span><div class="quick-actions">'+
+        '<button class="qa-btn yes" data-act="asistio" title="Marcar Asistió">✓</button>'+
+        '<button class="qa-btn no" data-act="no_asistio" title="Marcar No asistió">✕</button>'+
+        '<button class="qa-btn copy" data-act="copy" title="Copiar nombre del paciente">⧉</button></div>';
+
+      row.querySelectorAll('.qa-btn').forEach(function(btn){
+        btn.addEventListener('pointerdown',function(e){ e.stopPropagation(); });
+        btn.addEventListener('click',function(e){
+          e.stopPropagation();
+          if(btn.dataset.act==='copy'){ copyPatientName(ev.patient); return; }
+          var appt=findAppt(ev.id);
+          if(appt){ appt.status=btn.dataset.act; save(); renderGridTransposed(); showToast(ev.patient+': '+STATUS_DEFS[btn.dataset.act].label); }
+        });
+      });
 
       row.addEventListener('pointerdown', function(e){
+        if(e.target.closest('.qa-btn')) return;
         if(e.button!==undefined && e.button!==0) return;
         e.preventDefault();
         e.stopPropagation();
@@ -1423,12 +1441,14 @@
       '<div class="quick-actions">' +
         '<button class="qa-btn yes" data-act="asistio" title="Marcar Asistió">✓</button>' +
         '<button class="qa-btn no" data-act="no_asistio" title="Marcar No asistió">✕</button>' +
+        '<button class="qa-btn copy" data-act="copy" title="Copiar nombre del paciente">⧉</button>' +
       '</div>';
 
     el.querySelectorAll('.qa-btn').forEach(function(btn){
       btn.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
       btn.addEventListener('click', function(e){
         e.stopPropagation();
+        if(btn.dataset.act==='copy'){ copyPatientName(ev.patient); return; }
         var appt = findAppt(ev.id);
         if(appt){ appt.status = btn.dataset.act; save(); renderGrid(); showToast(ev.patient + ': ' + STATUS_DEFS[btn.dataset.act].label); }
       });
@@ -1474,9 +1494,23 @@
       row.className = 'appt-merge-row state-'+ev.status + (dragState.id===ev.id ? ' dragging' : '');
       row.dataset.id = ev.id;
       row.title = ev.patient + ' — ' + ev.start + '–' + endTime + ' (' + ev.duration + ' min) — ' + statusInfo.label + (ev.notes ? ' — ' + ev.notes : '');
-      row.innerHTML = '<span class="appt-patient">'+escapeHtml(ev.patient)+'</span>';
+      row.innerHTML = '<span class="appt-patient">'+escapeHtml(ev.patient)+'</span><div class="quick-actions">'+
+        '<button class="qa-btn yes" data-act="asistio" title="Marcar Asistió">✓</button>'+
+        '<button class="qa-btn no" data-act="no_asistio" title="Marcar No asistió">✕</button>'+
+        '<button class="qa-btn copy" data-act="copy" title="Copiar nombre del paciente">⧉</button></div>';
+
+      row.querySelectorAll('.qa-btn').forEach(function(btn){
+        btn.addEventListener('pointerdown',function(e){ e.stopPropagation(); });
+        btn.addEventListener('click',function(e){
+          e.stopPropagation();
+          if(btn.dataset.act==='copy'){ copyPatientName(ev.patient); return; }
+          var appt=findAppt(ev.id);
+          if(appt){ appt.status=btn.dataset.act; save(); renderGrid(); showToast(ev.patient+': '+STATUS_DEFS[btn.dataset.act].label); }
+        });
+      });
 
       row.addEventListener('pointerdown', function(e){
+        if(e.target.closest('.qa-btn')) return;
         if(e.button!==undefined && e.button!==0) return;
         e.preventDefault();
         e.stopPropagation();
@@ -1497,6 +1531,11 @@
   function findAppt(id){
     for(var i=0;i<state.appointments.length;i++) if(state.appointments[i].id===id) return state.appointments[i];
     return null;
+  }
+
+  function copyPatientName(name){
+    copiedPatientName = name;
+    showToast('Nombre copiado: '+name+'. Elegí otro horario o presioná +');
   }
 
   function escapeHtml(s){
@@ -1702,10 +1741,10 @@
     state.editingId = null;
     document.getElementById('panel-title').textContent = 'Nuevo turno';
     document.getElementById('btn-delete').style.display = 'none';
-    document.getElementById('btn-copy').style.display = 'none';
     populateProSelect(); populatePatientList();
     clearAdditionalPatients();
-    document.getElementById('f-patient').value = '';
+    document.getElementById('f-patient').value = copiedPatientName || '';
+    copiedPatientName = '';
     populateInsuranceSelect(document.getElementById('f-insurance'),'PAMI');
     document.getElementById('f-is-to').checked = false;
     document.getElementById('f-pro').value = profId || '';
@@ -1728,7 +1767,6 @@
     state.editingId = id;
     document.getElementById('panel-title').textContent = 'Editar / mover turno';
     document.getElementById('btn-delete').style.display = '';
-    document.getElementById('btn-copy').style.display = '';
     populateProSelect(); populatePatientList();
     clearAdditionalPatients();
     document.getElementById('f-patient').value = appt.patient;
@@ -1813,20 +1851,6 @@
     renderGridAuto();
   }
 
-  function copyPanel(){
-    if(!state.editingId) return;
-    var entries=patientEntries(), profId=document.getElementById('f-pro').value, date=document.getElementById('f-date').value, start=document.getElementById('f-time').value;
-    if(entries.some(function(x){return !x.patient;}) || !profId || !date || !start){ alert('Completá paciente, lugar, día y horario.'); return; }
-    if(!confirm('¿Confirmar la copia en '+date+' a las '+start+'? El turno original se conservará.')) return;
-    rememberForUndo('copiar turno');
-    var duration=parseInt(document.getElementById('f-dur').value,10), status=document.getElementById('f-status').value, notes=document.getElementById('f-notes').value.trim();
-    entries.forEach(function(entry,i){
-      if(state.patients.indexOf(entry.patient)===-1) state.patients.push(entry.patient);
-      state.appointments.push({id:'a'+Date.now()+i+Math.floor(Math.random()*1000),date:date,start:start,duration:duration,profId:profId,patient:entry.patient,insurance:entry.insurance,isTO:entry.isTO,status:status,notes:notes});
-    });
-    save(); closePanel(); renderGridAuto(); showToast('Turno copiado; el original se conservó');
-  }
-
   function deletePanel(){
     if(!state.editingId) return;
     if(!confirm('¿Eliminar este turno? Podrás recuperarlo con Deshacer.')) return;
@@ -1878,7 +1902,6 @@
   document.getElementById('panel-close').addEventListener('click', closePanel);
   document.getElementById('backdrop').addEventListener('click', closePanel);
   document.getElementById('btn-save').addEventListener('click', savePanel);
-  document.getElementById('btn-copy').addEventListener('click', copyPanel);
   document.getElementById('btn-delete').addEventListener('click', deletePanel);
   document.getElementById('btn-add-patient').addEventListener('click', function(){ addPatientRow(); });
   document.getElementById('btn-new-patient').addEventListener('click', function(){
